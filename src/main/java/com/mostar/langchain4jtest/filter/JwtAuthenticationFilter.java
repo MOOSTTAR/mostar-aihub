@@ -1,0 +1,81 @@
+package com.mostar.langchain4jtest.filter;
+
+import com.mostar.langchain4jtest.service.impl.AuthServiceImpl;
+import com.mostar.langchain4jtest.utils.JwtUtil;
+import jakarta.annotation.Resource;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.ArrayList;
+
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String TOKEN_HEADER = "Authorization";
+    private static final String TOKEN_PREFIX = "Bearer ";
+
+    @Resource
+    private AuthServiceImpl authService;
+
+    @Resource
+    private JwtUtil jwtUtil;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
+        // 获取 token
+        String header = request.getHeader(TOKEN_HEADER);
+        if (header == null || !header.startsWith(TOKEN_PREFIX)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = header.substring(TOKEN_PREFIX.length());
+
+        // 续期处理
+        String processedToken = authService.renewTokenIfNeeded(token);
+
+        if (processedToken == null) {
+            // token 已失效，返回 401
+            if (!response.isCommitted()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"code\":401,\"message\":\"Token已失效，请重新登录\"}");
+            }
+            return;
+        }
+
+        // 如果 token 被续期了，将新 token 写入响应头（前端需要更新存储）
+        if (!processedToken.equals(token) && !response.isCommitted()) {
+            response.setHeader("X-New-Token", processedToken);
+        }
+
+        // 从 token 中获取用户信息并设置到 SecurityContext
+        String username = jwtUtil.getUsernameFromToken(processedToken);
+        System.out.println("准备设置认证，用户名：" + username);
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = User.builder()
+                    .username(username)
+                    .password("")
+                    .authorities(new ArrayList<>())
+                    .build();
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            System.out.println("认证已设置，当前认证对象：" + SecurityContextHolder.getContext().getAuthentication());
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}

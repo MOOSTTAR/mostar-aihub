@@ -1,0 +1,88 @@
+package com.mostar.langchain4jtest.controller;
+
+import com.mostar.langchain4jtest.aiservice.ConsultantService;
+import com.mostar.langchain4jtest.service.ChatSessionService;
+import com.mostar.langchain4jtest.utils.JwtUtil;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+
+import java.io.IOException;
+
+@RestController
+@RequestMapping("/chat")
+@Slf4j
+public class ChatController {
+    @Resource
+    private OpenAiChatModel openAiChatModel;
+
+    @Resource
+    private ConsultantService consultantService;
+
+    @Resource
+    private ChatSessionService chatSessionService;
+
+    @Resource
+    private JwtUtil jwtUtil;
+
+    @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter chat(@RequestParam String memoryId, @RequestParam String message, HttpServletRequest request) {
+        log.info("Chat request - memoryId: {}, message: {}", memoryId, message);
+
+        // 获取用户ID并记录会话
+        Long userId = getUserIdFromRequest(request);
+        if (userId != null) {
+            chatSessionService.createSession(memoryId, message, userId);
+        }
+
+        SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
+
+        Flux<String> flux = consultantService.chat(memoryId, message);
+
+        flux.subscribe(
+            content -> {
+                try {
+                    emitter.send(SseEmitter.event()
+                        .data(content)
+                        .build());
+                } catch (IOException e) {
+                    log.error("Error sending SSE event", e);
+                    emitter.completeWithError(e);
+                }
+            },
+            error -> {
+                log.error("Chat error: ", error);
+                emitter.completeWithError(error);
+            },
+            () -> {
+                log.info("Chat completed");
+                emitter.complete();
+            }
+        );
+
+        return emitter;
+    }
+
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        try {
+            return jwtUtil.getUserIdFromToken(token);
+        } catch (Exception e) {
+            log.error("解析token失败", e);
+            return null;
+        }
+    }
+}

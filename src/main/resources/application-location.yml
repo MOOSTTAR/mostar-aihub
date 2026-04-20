@@ -1,0 +1,8 @@
+jwt:
+  secret: f8x2!9kL#5mQp@3rT&7yZvW$aE4hN6cR8vB1xY
+  # 记住我时 token 有效期：7天（毫秒）
+  remember-me-expiration: 604800000
+  # 未选择记住我时 token 有效期：30分钟（毫秒）
+  default-expiration: 1800000
+  # 续期阈值（剩余时间小于此值则续期），单位毫秒，默认 5 分钟
+  renew-threshold: 300000

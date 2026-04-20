@@ -1,0 +1,49 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+      meta: { guestOnly: true }
+    },
+    {
+      path: '/chat',
+      name: 'chat',
+      component: () => import('../views/ChatView.vue'),
+      meta: { requiresAuth: true }
+    }
+  ],
+})
+
+// 路由守卫 - 认证检查
+router.beforeEach((to, _from, next) => {
+  // 直接从 localStorage 检查 token，避免 Pinia 状态同步问题
+  const token = localStorage.getItem('token')
+  const isLoggedIn = !!token
+
+  // 需要登录的页面
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // 仅限未登录用户的页面（如登录页）
+  if (to.meta.guestOnly && isLoggedIn) {
+    next('/')
+    return
+  }
+
+  next()
+})
+
+export default router

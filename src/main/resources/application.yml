@@ -1,0 +1,45 @@
+#端口
+server:
+  port: 8081
+#langchain4j
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY}
+      model-name: deepseek-reasoner
+      log-requests: true
+      log-responses: true
+    streaming-chat-model:
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY}
+      model-name: deepseek-reasoner
+      log-requests: true
+      log-responses: true
+#监听日志
+logging:
+  level:
+    dev.langchain4j: DEBUG
+    org.springframework.security: DEBUG
+spring:
+  #MySQL
+  datasource:
+    url: jdbc:mysql://localhost:3306/langchain4j_test?useSSL=false&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true
+    username: root
+    password: 200411
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  profiles:
+    active: location
+  #Redis
+  data:
+    redis:
+      host: 192.168.150.102
+      port: 6379
+      password: 200411
+      database: 0
+      timeout: 10000
+# knife4j config
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
