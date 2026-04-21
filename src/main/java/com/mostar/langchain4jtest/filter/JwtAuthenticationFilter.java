@@ -63,7 +63,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 从 token 中获取用户信息并设置到 SecurityContext
         String username = jwtUtil.getUsernameFromToken(processedToken);
-        System.out.println("准备设置认证，用户名：" + username);
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = User.builder()
                     .username(username)
@@ -73,7 +72,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            System.out.println("认证已设置，当前认证对象：" + SecurityContextHolder.getContext().getAuthentication());
         }
 
         filterChain.doFilter(request, response);

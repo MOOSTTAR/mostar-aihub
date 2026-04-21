@@ -1,6 +1,8 @@
 package com.mostar.langchain4jtest.controller;
 
 import com.mostar.langchain4jtest.aiservice.ConsultantService;
+import com.mostar.langchain4jtest.entity.Result;
+import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
 import com.mostar.langchain4jtest.service.ChatSessionService;
 import com.mostar.langchain4jtest.utils.JwtUtil;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -8,10 +10,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
@@ -32,6 +31,9 @@ public class ChatController {
 
     @Resource
     private JwtUtil jwtUtil;
+
+    @Resource
+    private RedisChatMemoryStore redisChatMemoryStore;
 
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestParam String memoryId, @RequestParam String message, HttpServletRequest request) {
@@ -84,5 +86,24 @@ public class ChatController {
             log.error("解析token失败", e);
             return null;
         }
+    }
+
+    /**
+     * 清空当前对话记录和 AI 记忆
+     */
+    @PostMapping(value = "/clear", produces = "application/json")
+    public Result<String> clearChat(@RequestParam String memoryId, HttpServletRequest request) {
+        log.info("Clear chat memory - memoryId: {}", memoryId);
+
+        // 清空 Redis 中的 AI 记忆
+        redisChatMemoryStore.deleteMessages(memoryId);
+
+        // 重置会话标题为"新对话"
+        Long userId = getUserIdFromRequest(request);
+        if (userId != null) {
+            chatSessionService.updateSessionTitle(memoryId, "新对话", userId);
+        }
+
+        return Result.ok("清空成功");
     }
 }

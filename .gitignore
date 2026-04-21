@@ -1,0 +1,17 @@
+# IDE
+.idea/
+.vscode/
+
+# Build
+target/
+
+# Logs
+*.log
+backend.log
+backend_full.log
+
+# Local config
+src/main/resources/application-prod.yml
+
+# Claude
+.claude/

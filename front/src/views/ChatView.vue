@@ -257,7 +257,64 @@ const sendMessage = async () => {
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
-    sendMessage()
+    handleCommandOrSend()
+  }
+}
+
+// 处理命令或发送消息
+const handleCommandOrSend = async () => {
+  const message = inputMessage.value.trim()
+  if (!message || loading.value) return
+
+  // 检查是否是/clear 命令
+  if (message === '/clear') {
+    inputMessage.value = ''
+    await clearChatWithApi()
+    return
+  }
+
+  await sendMessage()
+}
+
+// 清空对话
+const clearChatWithApi = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      authStore.logout()
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch(`/api/chat/clear?memoryId=${sessionMemoryId.value}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.status === 401) {
+      authStore.logout()
+      router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+      return
+    }
+
+    if (response.ok) {
+      const result = await response.json()
+      if (result.code === 200) {
+        messages.value = []
+        sessionMemoryId.value = Date.now().toString()
+        await sessionStore.fetchSessions()
+        ElMessage.success('已清空对话记录')
+      } else {
+        ElMessage.error(result.msg || '清空对话失败')
+      }
+    } else {
+      ElMessage.error('清空对话失败')
+    }
+  } catch (error) {
+    console.error('清空对话失败:', error)
+    ElMessage.error('清空对话失败')
   }
 }
 
@@ -298,11 +355,6 @@ onMounted(() => {
             <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           <span>新对话</span>
-        </button>
-        <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
         </button>
       </div>
 
@@ -544,25 +596,6 @@ onMounted(() => {
 .new-chat-btn-sidebar:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-}
-
-.sidebar-toggle {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-canvas);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sidebar-toggle:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .sidebar-content {

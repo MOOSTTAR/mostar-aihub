@@ -1,11 +1,13 @@
 package com.mostar.langchain4jtest.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 import org.slf4j.MDC;
 
 import static com.mostar.langchain4jtest.constants.CodeConstants.*;
 import static com.mostar.langchain4jtest.constants.Constants.REQUEST_ID_HEADER;
 
+@Data
 public class Result<T> {
     @Schema(name = "业务状态码，200-成功，其它-失败")
     private int code;
