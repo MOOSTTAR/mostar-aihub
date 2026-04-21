@@ -40,34 +40,40 @@
 
 ```
 mostar-aihub/
-├── front/                  # 前端项目
+├── front/                      # 前端项目
 │   ├── src/
-│   │   ├── components/     # 组件
-│   │   ├── router/         # 路由
-│   │   ├── stores/         # Pinia 状态
-│   │   ├── views/          # 页面视图
-│   │   └── utils/          # 工具函数
+│   │   ├── assets/             # 静态资源
+│   │   ├── components/         # 公共组件
+│   │   ├── router/             # 路由配置
+│   │   ├── stores/             # Pinia 状态管理
+│   │   ├── utils/              # 工具函数
+│   │   └── views/              # 页面视图
 │   └── package.json
-├── src/                    # 后端项目
+├── src/                        # 后端项目
 │   ├── main/java/com/mostar/langchain4jtest/
-│   │   ├── config/         # 配置类（安全、CORS）
-│   │   ├── constants/      # 常量定义
-│   │   ├── context/        # 用户上下文
-│   │   ├── controller/     # 控制器（聊天、会话、认证）
-│   │   ├── entity/         # 实体类、DTO、VO
-│   │   ├── exception/      # 自定义异常
-│   │   ├── filter/         # JWT 认证过滤器
-│   │   ├── handler/        # 全局异常处理
-│   │   ├── mapper/         # MyBatis Mapper
-│   │   ├── repository/     # 数据仓库（Redis/MySQL）
-│   │   ├── service/        # 服务层
-│   │   ├── aiservice/      # LangChain4j 声明式 AI 服务
-│   │   └── utils/          # 工具类（JWT 等）
-│   └── main/resources/
-│       ├── application.yml         # 主配置
-│       ├── application-dev.yml     # 开发环境配置
-│       ├── application-prod.yml    # 生产环境配置
-│       └── mapper/                 # MyBatis XML
+│   │   ├── aiservice/          # LangChain4j 声明式 AI 服务
+│   │   ├── config/             # 配置类（安全、CORS、密码）
+│   │   ├── constants/          # 常量定义
+│   │   ├── context/            # 用户上下文
+│   │   ├── controller/         # 控制器（聊天、会话、认证、用户）
+│   │   ├── entity/             # 实体类
+│   │   │   ├── dto/            # 数据传输对象
+│   │   │   ├── po/             # 持久化对象
+│   │   │   └── vo/             # 视图对象
+│   │   ├── exception/          # 自定义异常
+│   │   ├── filter/             # JWT 认证过滤器
+│   │   ├── handler/            # 全局异常处理
+│   │   ├── mapper/             # MyBatis Mapper
+│   │   ├── repository/         # 数据仓库（Redis/MySQL ChatMemory）
+│   │   ├── service/            # 服务层接口
+│   │   │   └── impl/           # 服务层实现
+│   │   └── utils/              # 工具类（JWT 等）
+│   ├── main/resources/
+│   │   ├── application.yml         # 主配置
+│   │   ├── application-dev.yml     # 开发环境配置
+│   │   ├── application-prod.yml    # 生产环境配置
+│   │   └── mapper/                 # MyBatis XML
+│   └── test/                       # 测试类
 └── pom.xml
 ```
 
