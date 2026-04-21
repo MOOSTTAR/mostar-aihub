@@ -1,4 +1,4 @@
-# MoStar AI Hub
+# MOstAr AI Hub
 
 基于 Spring Boot + Vue3 的智能聊天应用，集成 LangChain4j AI 框架。
 
