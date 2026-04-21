@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -60,6 +60,9 @@ const renderContent = (content: string) => {
 const messages = ref<Message[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
+const isSwitchingSession = ref(false)
+const thinkingSeconds = ref(0)
+const thinkingTimer = ref<number | null>(null)
 const chatContainer = ref<HTMLDivElement>()
 const isTyping = ref(false)
 const sidebarCollapsed = ref(false)
@@ -89,6 +92,9 @@ const clearChat = () => {
 // 切换到指定会话
 const switchSession = async (memoryId: string) => {
   if (memoryId === sessionMemoryId.value) return
+
+  // 先设置加载状态，防止界面闪烁
+  isSwitchingSession.value = true
   sessionMemoryId.value = memoryId
   messages.value = []
 
@@ -100,6 +106,7 @@ const switchSession = async (memoryId: string) => {
     id: generateId() + index
   }))
 
+  isSwitchingSession.value = false
   await scrollToBottom()
 }
 
@@ -156,6 +163,8 @@ const sendMessage = async () => {
   messages.value.push({ role: 'user', content: message, id: generateId() })
   inputMessage.value = ''
   loading.value = true
+  isTyping.value = true
+  startThinkingTimer()
   await scrollToBottom()
 
   // 使用当前会话的 memoryId（同一会话保持不变）
@@ -251,6 +260,7 @@ const sendMessage = async () => {
   } finally {
     loading.value = false
     isTyping.value = false
+    stopThinkingTimer()
   }
 }
 
@@ -335,12 +345,56 @@ const initTheme = () => {
   }
 }
 
+// 启动思考计时器
+const startThinkingTimer = () => {
+  thinkingSeconds.value = 0
+  if (thinkingTimer.value) {
+    clearInterval(thinkingTimer.value)
+  }
+  thinkingTimer.value = window.setInterval(() => {
+    thinkingSeconds.value++
+  }, 1000)
+}
+
+// 停止思考计时器
+const stopThinkingTimer = () => {
+  if (thinkingTimer.value) {
+    clearInterval(thinkingTimer.value)
+    thinkingTimer.value = null
+  }
+}
+
 // 输入框焦点动画
 const isInputFocused = ref(false)
+const showCommands = ref(false)
+
+// 可用指令列表
+const commands = [
+  { name: '/clear', description: '清空当前对话记录和 AI 记忆' }
+]
+
+// 插入指令到输入框
+const insertCommand = (cmd: string) => {
+  inputMessage.value = cmd
+  showCommands.value = false
+}
+
+// 点击外部关闭指令菜单
+const handleOutsideClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (!target.closest('.input-wrapper') && showCommands.value) {
+    showCommands.value = false
+  }
+}
 
 onMounted(() => {
   initTheme()
   sessionStore.fetchSessions()
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick)
 })
 </script>
 
@@ -440,7 +494,12 @@ onMounted(() => {
       <!-- Main Chat Area -->
       <main class="chat-stage">
         <!-- Empty State -->
-        <div v-if="messages.length === 0" class="empty-bento">
+        <div v-if="isSwitchingSession" class="empty-bento">
+          <div class="welcome-card">
+            <div class="loading-spinner">加载中...</div>
+          </div>
+        </div>
+        <div v-else-if="messages.length === 0" class="empty-bento">
           <div class="welcome-card">
             <div class="welcome-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -506,6 +565,7 @@ onMounted(() => {
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
               </div>
+              <div class="thinking-time">已思考 {{ thinkingSeconds }} 秒</div>
             </div>
           </div>
         </div>
@@ -513,27 +573,43 @@ onMounted(() => {
 
       <!-- Input Area -->
       <footer class="input-dock">
-        <div class="input-bento" :class="{ 'is-focused': isInputFocused }">
-          <textarea
-            v-model="inputMessage"
-            :rows="2"
-            placeholder="输入消息，按 Enter 发送..."
-            @keydown="handleKeydown"
-            @focus="isInputFocused = true"
-            @blur="isInputFocused = false"
-            class="message-input"
-          />
-          <button
-            class="send-btn"
-            :disabled="!inputMessage.trim() || loading"
-            @click="sendMessage"
-            :class="{ 'has-content': inputMessage.trim() }"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
+        <div class="input-wrapper">
+          <!-- 指令按钮和弹窗 -->
+          <div class="commands-wrapper">
+            <button class="command-btn" @click="showCommands = !showCommands" title="查看指令">
+              <span style="font-size: 18px; font-weight: 600; font-family: monospace;">/</span>
+            </button>
+            <!-- 指令列表弹窗 -->
+            <div v-if="showCommands" class="commands-dropdown">
+              <div v-for="cmd in commands" :key="cmd.name" class="command-item" @click="insertCommand(cmd.name)">
+                <span class="command-name">{{ cmd.name }}</span>
+                <span class="command-desc">{{ cmd.description }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-bento" :class="{ 'is-focused': isInputFocused }">
+            <textarea
+              v-model="inputMessage"
+              :rows="2"
+              placeholder="输入消息，按 Enter 发送..."
+              @keydown="handleKeydown"
+              @focus="isInputFocused = true"
+              @blur="isInputFocused = false"
+              class="message-input"
+            />
+            <button
+              class="send-btn"
+              :disabled="!inputMessage.trim() || loading"
+              @click="sendMessage"
+              :class="{ 'has-content': inputMessage.trim() }"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
       </footer>
@@ -879,6 +955,28 @@ html, body {
   opacity: 0.8;
 }
 
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.loading-spinner::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .welcome-title {
   font-size: 24px;
   font-weight: 700;
@@ -1043,10 +1141,90 @@ html, body {
   40% { transform: translateY(-6px); }
 }
 
+.thinking-time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 8px;
+  text-align: center;
+}
+
 /* Input Dock */
 .input-dock {
   padding: 16px;
   background: linear-gradient(to top, var(--bg-canvas) 80%, transparent);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.commands-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.command-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.command-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.commands-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  min-width: 260px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  padding: 8px;
+  z-index: 100;
+}
+
+.command-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.command-item:hover {
+  background: var(--bg-subtle);
+}
+
+.command-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.command-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .input-bento {
@@ -1059,6 +1237,7 @@ html, body {
   border-radius: 20px;
   box-shadow: 0 2px 12px var(--border-subtle);
   transition: all var(--duration-fast) var(--ease-smooth);
+  flex: 1;
 }
 
 .input-bento.is-focused {
