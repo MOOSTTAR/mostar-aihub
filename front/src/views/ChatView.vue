@@ -67,6 +67,10 @@ const chatContainer = ref<HTMLDivElement>()
 const isTyping = ref(false)
 const sidebarCollapsed = ref(false)
 
+// 批量删除相关
+const isBatchDeleteMode = ref(false)
+const selectedSessions = ref<Set<string>>(new Set())
+
 // 生成唯一ID
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
@@ -130,6 +134,54 @@ const handleDeleteSession = async (memoryId: string, event: Event) => {
   } catch {
     // 用户取消
   }
+}
+
+// 批量删除相关
+const toggleBatchDeleteMode = () => {
+  isBatchDeleteMode.value = !isBatchDeleteMode.value
+  selectedSessions.value.clear()
+}
+
+const toggleSessionSelection = (memoryId: string, event: Event) => {
+  event.stopPropagation()
+  if (selectedSessions.value.has(memoryId)) {
+    selectedSessions.value.delete(memoryId)
+  } else {
+    selectedSessions.value.add(memoryId)
+  }
+}
+
+const batchDeleteSessions = async () => {
+  if (selectedSessions.value.size === 0) {
+    ElMessage.warning('请选择要删除的会话')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedSessions.value.size} 个会话吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const success = await sessionStore.deleteSessions(Array.from(selectedSessions.value))
+    if (success) {
+      ElMessage.success('批量删除成功')
+      // 如果当前会话被删除了，新建一个
+      if (selectedSessions.value.has(sessionMemoryId.value)) {
+        clearChat()
+      }
+      isBatchDeleteMode.value = false
+      selectedSessions.value.clear()
+    }
+  } catch {
+    // 用户取消
+  }
+}
+
+const cancelBatchDelete = () => {
+  isBatchDeleteMode.value = false
+  selectedSessions.value.clear()
 }
 
 const scrollToBottom = async () => {
@@ -404,6 +456,27 @@ onUnmounted(() => {
           </svg>
           <span>新对话</span>
         </button>
+        <button v-if="sessionStore.sessions.length > 0 && !isBatchDeleteMode" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+        <template v-else-if="isBatchDeleteMode">
+          <button class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>一键删除</span>
+          </button>
+          <button class="batch-action-btn batch-cancel-btn" @click="cancelBatchDelete">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <span>取消</span>
+          </button>
+        </template>
       </div>
 
       <div class="sidebar-content">
@@ -416,16 +489,25 @@ onUnmounted(() => {
             v-for="session in sessionStore.sessions"
             :key="session.memoryId"
             class="session-item"
-            :class="{ 'active': session.memoryId === sessionMemoryId }"
+            :class="{ 'active': session.memoryId === sessionMemoryId, 'selected': selectedSessions.has(session.memoryId) }"
             @click="switchSession(session.memoryId)"
           >
-            <div class="session-icon">
+            <div v-if="isBatchDeleteMode" class="session-checkbox" @click="toggleSessionSelection(session.memoryId, $event)">
+              <svg v-if="selectedSessions.has(session.memoryId)" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)"/>
+                <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+              </svg>
+            </div>
+            <div v-else class="session-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
             <div class="session-title">{{ session.title }}</div>
-            <button class="delete-btn" @click="handleDeleteSession(session.memoryId, $event)">
+            <button class="delete-btn" @click="handleDeleteSession(session.memoryId, $event)" v-if="!isBatchDeleteMode">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -668,6 +750,68 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
+/* 批量删除按钮 */
+.batch-delete-btn-sidebar {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #EF4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.batch-delete-btn-sidebar:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #EF4444;
+}
+
+/* 批量操作按钮组 */
+.batch-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.batch-confirm-btn {
+  background: #EF4444;
+  color: white;
+}
+
+.batch-confirm-btn:hover:not(:disabled) {
+  background: #DC2626;
+  transform: translateY(-1px);
+}
+
+.batch-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.batch-cancel-btn {
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.batch-cancel-btn:hover {
+  background: var(--border);
+}
+
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
@@ -706,6 +850,20 @@ onUnmounted(() => {
 .session-item.active {
   background: var(--accent-soft);
   border: 1px solid var(--accent);
+}
+
+.session-item.selected {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #EF4444;
+}
+
+.session-checkbox {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .session-icon {

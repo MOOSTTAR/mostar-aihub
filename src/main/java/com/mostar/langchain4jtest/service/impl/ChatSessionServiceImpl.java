@@ -123,6 +123,30 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         stringRedisTemplate.opsForHash().put(infoKey, "title", truncateMessage(title, 20));
     }
 
+    @Override
+    public void deleteSessions(List<String> memoryIds, Long userId) {
+        if (memoryIds == null || memoryIds.isEmpty()) {
+            return;
+        }
+
+        String sessionKey = SESSION_KEY_PREFIX + userId;
+
+        for (String memoryId : memoryIds) {
+            String infoKey = SESSION_INFO_PREFIX + memoryId;
+
+            // 从用户会话列表中移除
+            stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
+            // 删除会话信息
+            stringRedisTemplate.delete(infoKey);
+            // 删除会话内容（AI 记忆）
+            stringRedisTemplate.delete(memoryId);
+
+            log.info("用户 {} 批量删除会话 {}", userId, memoryId);
+        }
+
+        log.info("用户 {} 批量删除 {} 个会话完成", userId, memoryIds.size());
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {

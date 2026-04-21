@@ -42,6 +42,17 @@ export const useChatSessionStore = defineStore('chatSession', () => {
     }
   }
 
+  const deleteSessions = async (memoryIds: string[]) => {
+    try {
+      await request.post('/chat/sessions/batch-delete', memoryIds)
+      sessions.value = sessions.value.filter(s => !memoryIds.includes(s.memoryId))
+      return true
+    } catch (error) {
+      console.error('批量删除失败:', error)
+      return false
+    }
+  }
+
   const addSession = (memoryId: string, title: string) => {
     sessions.value.unshift({
       memoryId,

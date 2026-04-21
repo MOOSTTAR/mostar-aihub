@@ -26,4 +26,9 @@ public interface ChatSessionService {
      * 更新会话标题（如果还没有标题）
      */
     void updateSessionTitle(String memoryId, String title, Long userId);
+
+    /**
+     * 批量删除会话
+     */
+    void deleteSessions(List<String> memoryIds, Long userId);
 }

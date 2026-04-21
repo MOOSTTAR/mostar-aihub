@@ -106,4 +106,20 @@ public class ChatController {
 
         return Result.ok("清空成功");
     }
+
+    /**
+     * 批量删除会话
+     */
+    @PostMapping("/sessions/batch-delete")
+    public Result<String> batchDeleteSessions(@RequestBody java.util.List<String> memoryIds, HttpServletRequest request) {
+        log.info("Batch delete sessions - memoryIds: {}", memoryIds);
+
+        Long userId = getUserIdFromRequest(request);
+        if (userId == null) {
+            return Result.error("未授权");
+        }
+
+        chatSessionService.deleteSessions(memoryIds, userId);
+        return Result.ok("批量删除成功");
+    }
 }
