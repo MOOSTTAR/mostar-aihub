@@ -89,17 +89,26 @@ mostar-aihub/
 ### 后端启动
 
 ```bash
-# 1. 配置数据库（application.yml）
+# 1. 创建数据库并初始化
+# 使用 MySQL 客户端执行初始化脚本
+mysql -u root -p < src/main/resources/sql/init.sql
+
+# 2. 配置数据库（application.yml）
 # 修改 MySQL 和 Redis 连接信息
 
-# 2. 创建数据库
-CREATE DATABASE langchain4j_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+# 3. 配置 DeepSeek API Key
+# 设置环境变量：export DEEPSEEK_API_KEY=your_api_key
+# 或在 application.yml 中直接填写
 
-# 3. 启动后端
+# 4. 启动后端
 mvn spring-boot:run
 
 # 后端运行在 http://localhost:8080
 ```
+
+**默认测试账号：**
+- 用户名：`test`
+- 密码：`test123456`
 
 ### 前端启动
 
