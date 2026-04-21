@@ -152,6 +152,9 @@ const toggleSessionSelection = (memoryId: string, event: Event) => {
 }
 
 const batchDeleteSessions = async () => {
+  console.log('批量删除开始，选中的会话数:', selectedSessions.value.size)
+  console.log('选中的会话 IDs:', Array.from(selectedSessions.value))
+
   if (selectedSessions.value.size === 0) {
     ElMessage.warning('请选择要删除的会话')
     return
@@ -164,7 +167,9 @@ const batchDeleteSessions = async () => {
       type: 'warning'
     })
 
+    console.log('用户确认删除')
     const success = await sessionStore.deleteSessions(Array.from(selectedSessions.value))
+    console.log('删除结果:', success)
     if (success) {
       ElMessage.success('批量删除成功')
       // 如果当前会话被删除了，新建一个
@@ -174,7 +179,8 @@ const batchDeleteSessions = async () => {
       isBatchDeleteMode.value = false
       selectedSessions.value.clear()
     }
-  } catch {
+  } catch (e) {
+    console.log('用户取消删除或发生错误:', e)
     // 用户取消
   }
 }
@@ -449,20 +455,22 @@ onUnmounted(() => {
     <!-- Sidebar - Session List -->
     <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
-        <button class="new-chat-btn-sidebar" @click="clearChat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>新对话</span>
-        </button>
-        <button v-if="sessionStore.sessions.length > 0 && !isBatchDeleteMode" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-          </svg>
-        </button>
-        <template v-else-if="isBatchDeleteMode">
+        <template v-if="!isBatchDeleteMode">
+          <button class="new-chat-btn-sidebar" @click="clearChat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>新对话</span>
+          </button>
+          <button v-if="sessionStore.sessions.length > 0" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </template>
+        <template v-else>
           <button class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>

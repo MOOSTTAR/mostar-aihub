@@ -76,6 +76,7 @@ export const useChatSessionStore = defineStore('chatSession', () => {
     loading,
     fetchSessions,
     deleteSession,
+    deleteSessions,
     addSession,
     loadHistory
   }
