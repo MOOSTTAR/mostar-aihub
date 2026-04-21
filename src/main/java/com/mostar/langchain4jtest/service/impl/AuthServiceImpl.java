@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -132,6 +131,39 @@ public class AuthServiceImpl implements AuthService{
 
         // 无需续期
         return token;
+    }
+
+    /**
+     * 主动续期 token
+     * @param token 原始 JWT
+     * @return 续期后的新 token，如果 token 已失效则返回 null
+     */
+    public String renewToken(String token) {
+        // 1. 校验 JWT 签名
+        if (!jwtUtil.verify(token)) {
+            return null;
+        }
+
+        // 2. 检查 Redis 中是否存在
+        String redisKey = TOKEN_PREFIX + DigestUtil.md5Hex(token);
+        Boolean exists = stringRedisTemplate.hasKey(redisKey);
+        if (exists == null || !exists) {
+            return null;
+        }
+
+        // 3. 重新生成 token（主动续期，无论剩余时间多少都续）
+        Long userId = jwtUtil.getUserIdFromToken(token);
+        String username = jwtUtil.getUsernameFromToken(token);
+        boolean rememberMe = jwtUtil.getRememberMeFromToken(token);
+        long expiration = rememberMe ? rememberMeExpiration : defaultExpiration;
+
+        String newToken = jwtUtil.generateToken(userId, username, rememberMe, expiration);
+
+        // 更新 Redis
+        stringRedisTemplate.delete(redisKey);
+        String newRedisKey = TOKEN_PREFIX + DigestUtil.md5Hex(newToken);
+        stringRedisTemplate.opsForValue().set(newRedisKey, newToken, expiration * 2, TimeUnit.MILLISECONDS);
+        return newToken;
     }
 
     /**

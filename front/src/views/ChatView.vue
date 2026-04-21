@@ -187,12 +187,6 @@ const sendMessage = async () => {
       }
     })
 
-    // 检查是否有新 token（续期）
-    const newToken = response.headers.get('X-New-Token')
-    if (newToken) {
-      localStorage.setItem('token', newToken)
-    }
-
     // 处理 401 错误
     if (response.status === 401) {
       authStore.logout()
