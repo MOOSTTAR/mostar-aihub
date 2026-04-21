@@ -92,15 +92,25 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         // 添加到用户会话列表
         stringRedisTemplate.opsForSet().add(sessionKey, memoryId);
 
+        // 检查会话是否已存在
+        Boolean exists = stringRedisTemplate.hasKey(infoKey);
+
         // 保存会话信息
         Map<String, String> info = new HashMap<>();
-        info.put("title", truncateMessage(firstMessage, 20));
+        String title = truncateMessage(firstMessage, 20);
+        info.put("title", title);
         info.put("createTime", String.valueOf(System.currentTimeMillis()));
         info.put("userId", String.valueOf(userId));
 
-        stringRedisTemplate.opsForHash().putAll(infoKey, info);
-
-        log.info("用户 {} 创建新会话 {}", userId, memoryId);
+        if (exists != null && exists) {
+            // 会话已存在，只更新标题（/clear 后的第一次提问）
+            stringRedisTemplate.opsForHash().put(infoKey, "title", title);
+            log.info("用户 {} 更新会话 {} 标题为：{}", userId, memoryId, title);
+        } else {
+            // 新会话，创建完整信息
+            stringRedisTemplate.opsForHash().putAll(infoKey, info);
+            log.info("用户 {} 创建新会话 {}，标题：{}", userId, memoryId, title);
+        }
     }
 
     @Override
