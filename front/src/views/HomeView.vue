@@ -362,6 +362,42 @@ const handleLogout = async () => {
   border-top: 1px solid var(--border, #E8E6E1);
 }
 
+/* 滚动条样式 */
+.lobby::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lobby::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lobby::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 4px;
+}
+
+.lobby::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
+}
+
+/* 黑暗模式滚动条 */
+[data-theme="dark"] .lobby::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme="dark"] .lobby::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-theme="dark"] .lobby::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .lobby::-webkit-scrollbar-thumb:hover {
+  background: #4A4A4A;
+}
+
 /* Dark Mode Support */
 [data-theme="dark"] .lobby {
   --bg-canvas: #0F0F0F;
