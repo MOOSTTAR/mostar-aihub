@@ -986,6 +986,42 @@ onUnmounted(() => {
   --border-subtle: rgba(255, 255, 255, 0.06);
 }
 
+/* 亮色模式滚动条 */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
+}
+
+/* 黑暗模式滚动条 */
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border-radius: 3px;
+}
+
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #4A4A4A;
+}
+
 * {
   margin: 0;
   padding: 0;
