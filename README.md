@@ -7,6 +7,7 @@
 - 🔐 **JWT 认证** - 安全的用户登录和 Token 管理
 - 💬 **AI 对话** - 流式 SSE 响应，实时打字机效果
 - 📋 **会话管理** - 历史会话列表、标题自动生成、一键删除
+- 🧹 **一键清空** - `/clear` 指令清空对话和 AI 记忆
 - 🎨 **精美 UI** - Soft UI + Minimalist 设计风格
 - 🌙 **主题切换** - 亮色/暗色模式
 - 📱 **响应式** - 适配移动端
@@ -18,7 +19,7 @@
 
 ### 后端
 - Java 21
-- Spring Boot 3.4.11
+- Spring Boot 3.4.4
 - Spring Security + JWT
 - LangChain4j (DeepSeek AI)
 - MyBatis-Plus
@@ -80,7 +81,7 @@ CREATE DATABASE langchain4j_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_c
 # 3. 启动后端
 mvn spring-boot:run
 
-# 后端运行在 http://localhost:8081
+# 后端运行在 http://localhost:8080
 ```
 
 ### 前端启动
