@@ -49,15 +49,24 @@ mostar-aihub/
 │   └── package.json
 ├── src/                    # 后端项目
 │   ├── main/java/com/mostar/langchain4jtest/
-│   │   ├── config/         # 配置类
-│   │   ├── controller/     # 控制器
-│   │   ├── entity/         # 实体类
+│   │   ├── config/         # 配置类（安全、CORS）
+│   │   ├── constants/      # 常量定义
+│   │   ├── context/        # 用户上下文
+│   │   ├── controller/     # 控制器（聊天、会话、认证）
+│   │   ├── entity/         # 实体类、DTO、VO
+│   │   ├── exception/      # 自定义异常
+│   │   ├── filter/         # JWT 认证过滤器
+│   │   ├── handler/        # 全局异常处理
 │   │   ├── mapper/         # MyBatis Mapper
-│   │   ├── repository/     # 数据仓库
+│   │   ├── repository/     # 数据仓库（Redis/MySQL）
 │   │   ├── service/        # 服务层
-│   │   └── utils/          # 工具类
+│   │   ├── aiservice/      # LangChain4j 声明式 AI 服务
+│   │   └── utils/          # 工具类（JWT 等）
 │   └── main/resources/
-│       └── application.yml # 配置文件
+│       ├── application.yml         # 主配置
+│       ├── application-dev.yml     # 开发环境配置
+│       ├── application-prod.yml    # 生产环境配置
+│       └── mapper/                 # MyBatis XML
 └── pom.xml
 ```
 
