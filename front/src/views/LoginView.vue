@@ -287,6 +287,8 @@ const handleKeydown = (e: KeyboardEvent) => {
 .input-icon {
   position: absolute;
   left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--text-tertiary, #A3A3A3);
   pointer-events: none;
 }
