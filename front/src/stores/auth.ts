@@ -37,7 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
   const startRenewTimer = (expiresIn: number = 30 * 60 * 1000) => {
     clearRenewTimer()
     const renewTime = 25 * 60 * 1000 // 25 分钟后检查续期
+    console.log(`[Token 续期] 定时器启动，将在 25 分钟后 (${new Date(Date.now() + renewTime).toLocaleTimeString()}) 检查续期`)
     renewTimer = setTimeout(() => {
+      console.log('[Token 续期] 定时器触发，开始续期')
       renewToken()
     }, renewTime)
   }
@@ -55,9 +57,11 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return
 
     try {
+      console.log('[Token 续期] 发送续期请求')
       const response = await request.post('/auth/renew')
       const newToken = response.data.data
       if (newToken) {
+        console.log('[Token 续期] 续期成功')
         token.value = newToken
         localStorage.setItem('token', newToken)
         // 重置定时器（25 分钟后再次续期）

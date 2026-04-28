@@ -46,9 +46,14 @@ request.interceptors.request.use(
   }
 )
 
-// 响应拦截器 - 处理 401
+// 响应拦截器 - 处理 401 和 token 更新
 request.interceptors.response.use(
   (response) => {
+    // 检查响应头中是否有新 token（后端被动续期时返回）
+    const newToken = response.headers['x-new-token']
+    if (newToken) {
+      localStorage.setItem('token', newToken)
+    }
     return response
   },
   async (error: AxiosError) => {

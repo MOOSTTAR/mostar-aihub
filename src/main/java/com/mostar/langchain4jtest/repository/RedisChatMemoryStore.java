@@ -15,26 +15,25 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    private static final String CONTENT_PREFIX = "chat:session:content:";
+
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
-        //String key = userId + memoryId;
-        String json = stringRedisTemplate.opsForValue().get(memoryId.toString());
-        /*if (json == null) {
-            友好提示
-            return List.of();
-        }*/
+        String key = CONTENT_PREFIX + memoryId.toString();
+        String json = stringRedisTemplate.opsForValue().get(key);
         return ChatMessageDeserializer.messagesFromJson(json);
     }
 
     @Override
     public void updateMessages(Object memoryId, List<ChatMessage> list) {
+        String key = CONTENT_PREFIX + memoryId.toString();
         String json = ChatMessageSerializer.messagesToJson(list);
-        // 移除过期时间，会话永不过期
-        stringRedisTemplate.opsForValue().set(memoryId.toString(), json);
+        stringRedisTemplate.opsForValue().set(key, json);
     }
 
     @Override
     public void deleteMessages(Object memoryId) {
-        stringRedisTemplate.delete(memoryId.toString());
+        String key = CONTENT_PREFIX + memoryId.toString();
+        stringRedisTemplate.delete(key);
     }
 }

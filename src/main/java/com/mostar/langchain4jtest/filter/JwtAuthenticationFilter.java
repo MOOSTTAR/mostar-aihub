@@ -56,14 +56,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 如果 token 被续期了，说明已失效（被动续期兜底），返回 401
+        // 如果 token 被续期了，将新 token 放入响应头返回给前端
         if (!processedToken.equals(token)) {
-            if (!response.isCommitted()) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"code\":401,\"message\":\"Token 已失效，请重新登录\"}");
-            }
-            return;
+            response.setHeader("X-New-Token", processedToken);
         }
 
         // 从 token 中获取用户信息并设置到 SecurityContext
