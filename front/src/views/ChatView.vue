@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { marked } from 'marked'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -199,6 +199,24 @@ const toggleSessionSelection = (memoryId: string, event: Event) => {
     selectedSessions.value.add(memoryId)
   }
 }
+
+// 全选 / 取消全选
+const toggleSelectAll = () => {
+  if (selectedSessions.value.size === sessionStore.sessions.length) {
+    // 取消全选
+    selectedSessions.value.clear()
+  } else {
+    // 全选
+    sessionStore.sessions.forEach((session: { memoryId: string }) => {
+      selectedSessions.value.add(session.memoryId)
+    })
+  }
+}
+
+// 是否全选
+const isAllSelected = computed(() => {
+  return sessionStore.sessions.length > 0 && selectedSessions.value.size === sessionStore.sessions.length
+})
 
 const batchDeleteSessions = async () => {
   console.log('批量删除开始，选中的会话数:', selectedSessions.value.size)
@@ -520,6 +538,15 @@ onUnmounted(() => {
           </button>
         </template>
         <template v-else>
+          <button class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
+            <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none"/>
+              <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
+          </button>
           <button class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>
@@ -778,11 +805,12 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
-  padding: 16px;
+  padding: 12px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .new-chat-btn-sidebar {
@@ -830,21 +858,22 @@ onUnmounted(() => {
 
 /* 批量操作按钮组 */
 .batch-action-btn {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  min-width: 36px;
 }
 
 .batch-confirm-btn {
+  flex: 1;
   background: #EF4444;
   color: white;
 }
@@ -866,6 +895,16 @@ onUnmounted(() => {
 }
 
 .batch-cancel-btn:hover {
+  background: var(--border);
+}
+
+.batch-select-all-btn {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.batch-select-all-btn:hover {
   background: var(--border);
 }
 
