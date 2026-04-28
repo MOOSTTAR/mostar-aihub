@@ -522,8 +522,8 @@ onUnmounted(() => {
     <!-- Sidebar - Session List -->
     <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
+        <!-- 正常模式按钮组 -->
         <TransitionGroup name="fade" appear>
-          <!-- 正常模式按钮 -->
           <button v-if="!isBatchDeleteMode" key="new-chat" class="new-chat-btn-sidebar" @click="clearChat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -537,7 +537,9 @@ onUnmounted(() => {
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
-          <!-- 批量删除模式按钮 -->
+        </TransitionGroup>
+        <!-- 批量删除模式按钮组 -->
+        <TransitionGroup name="fade" appear>
           <button v-if="isBatchDeleteMode" key="select-all" class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
             <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none"/>
@@ -835,16 +837,20 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-/* 按钮过渡动画 - 统一的淡入淡出 */
+/* 按钮过渡动画 - 统一的淡入淡出，无缩放 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: scale(0.9);
+}
+
+/* TransitionGroup 移动动画 */
+.fade-move {
+  transition: all 0.15s ease;
 }
 
 /* 批量删除按钮 */
