@@ -33,15 +33,20 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isLoggedIn = computed(() => !!token.value)
 
-  // 启动续期定时器（每 25 分钟检查一次）
+  // 启动续期定时器（每 10 分钟检查一次）
   const startRenewTimer = (expiresIn: number = 30 * 60 * 1000) => {
     clearRenewTimer()
-    const renewTime = 25 * 60 * 1000 // 25 分钟后检查续期
-    console.log(`[Token 续期] 定时器启动，将在 25 分钟后 (${new Date(Date.now() + renewTime).toLocaleTimeString()}) 检查续期`)
+    const renewTime = 10 * 60 * 1000 // 10 分钟后检查续期
+    console.log(`[Token 续期] 定时器启动，将在 10 分钟后 (${new Date(Date.now() + renewTime).toLocaleTimeString()}) 检查续期`)
     renewTimer = setTimeout(() => {
       console.log('[Token 续期] 定时器触发，开始续期')
       renewToken()
     }, renewTime)
+  }
+
+  // 重置定时器（续期成功后调用）
+  const resetRenewTimer = () => {
+    startRenewTimer()
   }
 
   // 清除定时器
@@ -61,16 +66,19 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await request.post('/auth/renew')
       const newToken = response.data.data
       if (newToken) {
-        console.log('[Token 续期] 续期成功')
+        console.log('[Token 续期] 续期成功，新 token:', newToken.substring(0, 20) + '...')
         token.value = newToken
         localStorage.setItem('token', newToken)
         // 重置定时器（25 分钟后再次续期）
         startRenewTimer()
+      } else {
+        console.warn('[Token 续期] 续期返回为空')
+        logout()
       }
-    } catch (error) {
-      console.error('Token 续期失败:', error)
-      // 续期失败，清除本地状态并跳转到登录页
-      logout()
+    } catch (error: any) {
+      // 401 错误已经在 request.ts 中处理，会跳转登录
+      console.error('Token 续期失败:', error.message)
+      // 不立即 logout，让 request.ts 的 401 处理器处理
     }
   }
 
@@ -165,6 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     initAuth,
     renewToken,
-    clearRenewTimer
+    clearRenewTimer,
+    resetRenewTimer
   }
 })

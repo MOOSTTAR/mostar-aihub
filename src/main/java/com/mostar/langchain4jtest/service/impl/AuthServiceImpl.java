@@ -13,7 +13,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import static com.mostar.langchain4jtest.constants.RedisConstants.TOKEN_PREFIX;
@@ -38,9 +37,6 @@ public class AuthServiceImpl implements AuthService{
 
     @Value("${jwt.remember-me-expiration}")
     private long rememberMeExpiration;
-
-    @Value("${jwt.renew-threshold}")
-    private long renewThreshold;
 
     /**
      * 用户登录
@@ -76,26 +72,30 @@ public class AuthServiceImpl implements AuthService{
     }
 
     /**
-     * 检查并续期
+     * 验证 token 并自动续期（如果 JWT 过期但 Redis 未过期）
+     * 逻辑：
+     * 1. JWT 未过期 → 放行
+     * 2. JWT 过期但 Redis 未过期 → 续期，返回新 token
+     * 3. JWT 过期且 Redis 过期 → 返回 null，需要重新登录
      * @param token 原始 JWT
-     * @return 续期后的新 token，如果无需续期则返回原 token，如果 token 已失效则返回 null
+     * @return token（可能是新 token），如果失效则返回 null
      */
-    public String renewTokenIfNeeded(String token) {
+    public String validateAndRenewIfNeeded(String token) {
         // 1. 校验 JWT 签名
         if (!jwtUtil.verify(token)) {
             return null;
         }
 
-        // 2. 检查 Redis 中是否存在（Key 使用 MD5）
+        // 2. 检查 Redis 中是否存在
         String redisKey = TOKEN_PREFIX + DigestUtil.md5Hex(token);
         Boolean exists = stringRedisTemplate.hasKey(redisKey);
         if (exists == null || !exists) {
-            return null;  // Redis 中已过期，需要重新登录
+            return null;  // Redis 已过期，需要重新登录
         }
 
         // 3. 检查 JWT 是否过期
         if (jwtUtil.isExpired(token)) {
-            // JWT 已过期但 Redis 中还有（缓冲期内），重新生成 token
+            // JWT 已过期但 Redis 中还有，自动续期
             Long userId = jwtUtil.getUserIdFromToken(token);
             String username = jwtUtil.getUsernameFromToken(token);
             boolean rememberMe = jwtUtil.getRememberMeFromToken(token);
@@ -110,26 +110,7 @@ public class AuthServiceImpl implements AuthService{
             return newToken;
         }
 
-        // 4. 检查是否需要续期（剩余有效期小于阈值）
-        Date expDate = jwtUtil.getExpirationDate(token);
-        long remaining = expDate.getTime() - System.currentTimeMillis();
-        if (remaining <= renewThreshold) {
-            // 续期：重新生成 token，有效期根据 rememberMe 标志决定
-            Long userId = jwtUtil.getUserIdFromToken(token);
-            String username = jwtUtil.getUsernameFromToken(token);
-            boolean rememberMe = jwtUtil.getRememberMeFromToken(token);
-            long expiration = rememberMe ? rememberMeExpiration : defaultExpiration;
-
-            String newToken = jwtUtil.generateToken(userId, username, rememberMe, expiration);
-
-            // 更新 Redis
-            stringRedisTemplate.delete(redisKey);
-            String newRedisKey = TOKEN_PREFIX + DigestUtil.md5Hex(newToken);
-            stringRedisTemplate.opsForValue().set(newRedisKey, newToken, expiration * 2, TimeUnit.MILLISECONDS);
-            return newToken;
-        }
-
-        // 无需续期
+        // JWT 未过期，直接放行
         return token;
     }
 
