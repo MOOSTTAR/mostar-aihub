@@ -50,7 +50,56 @@ interface Message {
   id: string
 }
 
-marked.setOptions({ gfm: true, breaks: true })
+// 配置 marked 渲染器，给代码块添加复制按钮和行号
+const renderer = new marked.Renderer()
+renderer.code = ({ text, lang }: { text: string, lang?: string }) => {
+  const language = lang || 'text'
+  const encodedCode = encodeURIComponent(text)
+
+  // 生成带行号的 HTML
+  const lines = text.split('\n')
+  const lineNumbers = lines.map((_, index) => index + 1).join('\n')
+
+  return `
+<div class="code-block-wrapper">
+  <div class="code-header">
+    <span class="code-lang">${language}</span>
+    <button class="copy-code-btn" onclick="window.copyCode(decodeURIComponent('${encodedCode}'), this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+      <span class="copy-text">复制</span>
+    </button>
+  </div>
+  <div class="code-content-wrapper">
+    <div class="code-line-numbers">${lineNumbers}</div>
+    <pre><code class="language-${language}">${text.replace(/"/g, '&quot;')}</code></pre>
+  </div>
+</div>`
+}
+
+marked.setOptions({ gfm: true, breaks: true, renderer })
+
+// 复制代码
+const copyCode = async (code: string, buttonEl: HTMLElement) => {
+  try {
+    await navigator.clipboard.writeText(code)
+    // 显示复制成功提示
+    const originalText = buttonEl.textContent
+    buttonEl.textContent = '已复制!'
+    buttonEl.classList.add('copied')
+    setTimeout(() => {
+      buttonEl.textContent = originalText
+      buttonEl.classList.remove('copied')
+    }, 2000)
+  } catch (err) {
+    console.error('复制失败:', err)
+  }
+}
+
+// 使 copyCode 在全局可用
+;(window as any).copyCode = copyCode
 
 const renderContent = (content: string) => {
   if (!content) return ''
@@ -1499,16 +1548,185 @@ html, body {
 .message-bubble :deep(p) { margin: 0 0 16px; }
 .message-bubble :deep(p:last-child) { margin-bottom: 0; }
 
-.message-bubble :deep(pre) {
-  background: var(--bg-subtle);
-  padding: 20px;
-  border-radius: 12px;
-  overflow-x: auto;
+/* 代码块容器 - 圆角矩形背景 */
+.code-block-wrapper {
   margin: 16px 0;
-  border: 1px solid var(--border);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e8e4de;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 黑暗模式代码块背景 - 浅色 */
+[data-theme="dark"] .code-block-wrapper {
+  background: #2d2d2d;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 代码块头部 - 颜色稍深，与行号和代码区分 */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* 黑暗模式代码块头部 */
+[data-theme="dark"] .code-header {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 行号背景 - 与代码块背景一致 */
+.code-line-numbers {
+  flex-shrink: 0;
+  display: block;
+  padding: 20px 4px 20px 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  font-family: 'Consolas', monospace;
   font-size: 14px;
   line-height: 1.6;
+  color: rgba(0, 0, 0, 0.3);
+  text-align: right;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: pre;
+}
+
+.code-lang {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a5a5a;
+  text-transform: lowercase;
+  font-family: 'Consolas', monospace;
+}
+
+/* 复制代码按钮 - 精致设计 */
+.copy-code-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.copy-code-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  color: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.copy-code-btn:active {
+  transform: translateY(0);
+}
+
+/* 黑暗模式行号 - 与黑暗模式代码块背景一致 */
+[data-theme="dark"] .code-line-numbers {
+  background: transparent;
+  border-right-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* 黑暗模式复制按钮 - 与白天模式一致 */
+[data-theme="dark"] .copy-code-btn {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.4);
+  border: none !important;
+}
+
+[data-theme="dark"] .copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .copy-code-btn svg {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .copy-code-btn:hover svg {
+  stroke: #fff;
+}
+
+.copy-code-btn.copied {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.copy-code-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 代码块 */
+.code-block-wrapper pre {
+  background: transparent;
+  padding: 20px 0 20px 16px;
+  overflow-x: auto;
+  margin: 0;
+  font-family: 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.code-block-wrapper pre code {
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: #2d2d2d;
+  white-space: pre;
+}
+
+/* 代码内容包装器 - 行号 + 代码 */
+.code-content-wrapper {
+  display: flex;
+  align-items: stretch;
+}
+
+/* 黑暗模式代码文本 - 浅色 */
+[data-theme="dark"] .code-block-wrapper pre code {
+  color: #e0e0e0;
+}
+
+/* 黑暗模式代码内容包装器 */
+[data-theme="dark"] .code-content-wrapper {
+  background: #2d2d2d;
+}
+
+/* 黑暗模式代码块头部和按钮 */
+[data-theme="dark"] .code-header {
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .code-lang {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .copy-code-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .message-bubble :deep(code) {
