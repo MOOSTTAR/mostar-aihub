@@ -522,16 +522,14 @@ onUnmounted(() => {
     <!-- Sidebar - Session List -->
     <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
-        <Transition name="fade-scale" appear>
-          <button v-if="!isBatchDeleteMode" class="new-chat-btn-sidebar" @click="clearChat">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span>新对话</span>
-          </button>
-        </Transition>
-        <Transition name="fade-scale" appear>
+        <button class="new-chat-btn-sidebar" @click="clearChat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>新对话</span>
+        </button>
+        <Transition name="fade" appear>
           <button v-if="!isBatchDeleteMode && sessionStore.sessions.length > 0" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
@@ -539,7 +537,7 @@ onUnmounted(() => {
             </svg>
           </button>
         </Transition>
-        <TransitionGroup name="slide-fade" appear>
+        <TransitionGroup name="fade" appear>
           <template v-if="isBatchDeleteMode">
             <button key="select-all" class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
               <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -839,39 +837,16 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-/* 删除按钮过渡动画 */
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: all 0.25s ease;
-}
-
-.fade-scale-enter-from {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.fade-scale-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-/* 批量操作按钮过渡动画 */
-.slide-fade-enter-active {
-  transition: all 0.3s ease-out;
-}
-
-.slide-fade-leave-active {
+/* 按钮过渡动画 - 统一的淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
   transition: all 0.2s ease;
 }
 
-.slide-fade-enter-from {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-  transform: translateX(10px);
-}
-
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-10px);
+  transform: scale(0.9);
 }
 
 /* 批量删除按钮 */
