@@ -522,46 +522,44 @@ onUnmounted(() => {
     <!-- Sidebar - Session List -->
     <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
-        <button class="new-chat-btn-sidebar" @click="clearChat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>新对话</span>
-        </button>
-        <Transition name="fade" appear>
-          <button v-if="!isBatchDeleteMode && sessionStore.sessions.length > 0" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
+        <TransitionGroup name="fade" appear>
+          <!-- 正常模式按钮 -->
+          <button v-if="!isBatchDeleteMode" key="new-chat" class="new-chat-btn-sidebar" @click="clearChat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>新对话</span>
+          </button>
+          <button v-if="!isBatchDeleteMode && sessionStore.sessions.length > 0" key="batch-delete" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
           </button>
-        </Transition>
-        <TransitionGroup name="fade" appear>
-          <template v-if="isBatchDeleteMode">
-            <button key="select-all" class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
-              <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none"/>
-                <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
-              </svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-              </svg>
-            </button>
-            <button key="confirm" class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              <span>一键删除</span>
-            </button>
-            <button key="cancel" class="batch-action-btn batch-cancel-btn" @click="cancelBatchDelete">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-              <span>取消</span>
-            </button>
-          </template>
+          <!-- 批量删除模式按钮 -->
+          <button v-if="isBatchDeleteMode" key="select-all" class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
+            <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none"/>
+              <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
+            </svg>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+            </svg>
+          </button>
+          <button v-if="isBatchDeleteMode" key="confirm" class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>一键删除</span>
+          </button>
+          <button v-if="isBatchDeleteMode" key="cancel" class="batch-action-btn batch-cancel-btn" @click="cancelBatchDelete">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            <span>取消</span>
+          </button>
         </TransitionGroup>
       </div>
 
