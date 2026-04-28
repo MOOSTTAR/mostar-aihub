@@ -16,6 +16,22 @@ const request: AxiosInstance = axios.create({
   }
 })
 
+// 是否正在刷新 token 的标志
+let isRefreshing = false
+// 重试请求队列
+let refreshSubscribers: ((token: string) => void)[] = []
+
+// 添加到重试队列
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb)
+}
+
+// 执行重试队列
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach(cb => cb(token))
+  refreshSubscribers = []
+}
+
 // 请求拦截器 - 添加 token
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -44,20 +60,67 @@ request.interceptors.response.use(
 
     // 处理 401 未授权
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // 如果是续期请求本身失败，直接跳转登录
+      if (originalRequest.url?.includes('/auth/renew')) {
+        const authStore = useAuthStore()
+        authStore.logout()
+        router.push({
+          path: '/login',
+          query: { redirect: router.currentRoute.value.fullPath }
+        })
+        return Promise.reject(error)
+      }
+
+      // 如果正在刷新 token，将请求加入队列
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            resolve(request(originalRequest))
+          })
+        })
+      }
+
       originalRequest._retry = true
+      isRefreshing = true
 
-      const authStore = useAuthStore()
+      try {
+        // 尝试刷新 token
+        const token = localStorage.getItem('token')
+        const response = await axios.post('/api/auth/renew', null, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
 
-      // 清除本地 token
-      authStore.logout()
+        const newToken = response.data.data
+        if (newToken) {
+          // 保存新 token
+          localStorage.setItem('token', newToken)
 
-      // 跳转到登录页
-      router.push({
-        path: '/login',
-        query: { redirect: router.currentRoute.value.fullPath }
-      })
+          // 更新过期时间
+          const expiresAt = Date.now() + 30 * 60 * 1000
+          localStorage.setItem('tokenExpiresAt', String(expiresAt))
 
-      return Promise.reject(error)
+          // 执行重试队列
+          onRefreshed(newToken)
+
+          // 重试原请求
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return request(originalRequest)
+        }
+      } catch (refreshError) {
+        // 刷新失败，清除本地状态并跳转到登录页
+        const authStore = useAuthStore()
+        authStore.logout()
+        router.push({
+          path: '/login',
+          query: { redirect: router.currentRoute.value.fullPath }
+        })
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
 
     return Promise.reject(error)

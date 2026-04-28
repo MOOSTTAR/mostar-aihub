@@ -33,15 +33,13 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isLoggedIn = computed(() => !!token.value)
 
-  // 启动续期定时器（提前 5 分钟续期）
+  // 启动续期定时器（每 25 分钟检查一次）
   const startRenewTimer = (expiresIn: number = 30 * 60 * 1000) => {
     clearRenewTimer()
-    const renewTime = expiresIn - 5 * 60 * 1000 // 提前 5 分钟
-    if (renewTime > 0) {
-      renewTimer = setTimeout(() => {
-        renewToken()
-      }, renewTime)
-    }
+    const renewTime = 25 * 60 * 1000 // 25 分钟后检查续期
+    renewTimer = setTimeout(() => {
+      renewToken()
+    }, renewTime)
   }
 
   // 清除定时器
@@ -62,7 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (newToken) {
         token.value = newToken
         localStorage.setItem('token', newToken)
-        // 重置定时器（30 分钟后再次续期）
+        // 重置定时器（25 分钟后再次续期）
         startRenewTimer()
       }
     } catch (error) {
@@ -147,20 +145,9 @@ export const useAuthStore = defineStore('auth', () => {
       tokenExpiresAt.value = Number(savedExpiresAt)
     }
 
-    // 如果 token 未过期，启动续期定时器
-    if (savedToken && savedExpiresAt) {
-      const expiresAt = Number(savedExpiresAt)
-      const remaining = expiresAt - Date.now()
-      if (remaining > 5 * 60 * 1000) {
-        // 剩余时间大于 5 分钟，启动定时器
-        startRenewTimer(remaining)
-      } else if (remaining > 0) {
-        // 剩余时间不足 5 分钟，立即续期
-        renewToken()
-      } else {
-        // token 已过期，清除状态
-        logout()
-      }
+    // 启动续期定时器（无论是否过期都启动，过期了会在请求时自动续期）
+    if (savedToken) {
+      startRenewTimer()
     }
   }
 
