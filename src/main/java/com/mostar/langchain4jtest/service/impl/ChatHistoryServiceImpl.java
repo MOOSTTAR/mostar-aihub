@@ -27,14 +27,28 @@ public class ChatHistoryServiceImpl implements ChatHistoryService {
 
 	@Override
 	public List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request) {
-		// 从历史记录中获取（前端显示用）
-		List<ChatMessage> messages = redisChatMemoryStore.getHistory(memoryId);
+		// 1. 从历史记录中获取（之前 /clear 保存的对话）
+		List<ChatMessage> historyMessages = redisChatMemoryStore.getHistory(memoryId);
 
-		if (messages == null || messages.isEmpty()) {
+		// 2. 从 AI 记忆中获取（当前对话，可能包含 /clear 后的新对话）
+		List<ChatMessage> currentMessages = redisChatMemoryStore.getMessages(memoryId);
+
+		// 3. 合并：history + current
+		List<ChatMessage> allMessages = new java.util.ArrayList<>(historyMessages);
+		for (ChatMessage msg : currentMessages) {
+			// 简单去重：如果消息内容已存在则跳过
+			boolean exists = allMessages.stream()
+					.anyMatch(m -> m.toString().equals(msg.toString()));
+			if (!exists) {
+				allMessages.add(msg);
+			}
+		}
+
+		if (allMessages.isEmpty()) {
 			return List.of();
 		}
 
-		return messages.stream().filter(msg -> !(msg instanceof SystemMessage)) // 过滤掉系统消息
+		return allMessages.stream().filter(msg -> !(msg instanceof SystemMessage)) // 过滤掉系统消息
 				.map(this::convertToDTO).collect(Collectors.toList());
 	}
 
