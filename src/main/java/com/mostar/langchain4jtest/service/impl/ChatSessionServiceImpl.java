@@ -68,6 +68,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		String sessionKey = SESSION_KEY_PREFIX + userId;
 		String infoKey = SESSION_INFO_PREFIX + memoryId;
 		String contentKey = "chat:session:content:" + memoryId;
+		String historyKey = "chat:session:history:" + memoryId;
 
 		// 从用户会话列表中移除
 		stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
@@ -75,6 +76,8 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		stringRedisTemplate.delete(infoKey);
 		// 删除会话内容（AI 记忆）
 		stringRedisTemplate.delete(contentKey);
+		// 删除历史记录
+		stringRedisTemplate.delete(historyKey);
 
 		log.info("用户 {} 删除会话 {}", userId, memoryId);
 	}
@@ -132,6 +135,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		for (String memoryId : memoryIds) {
 			String infoKey = SESSION_INFO_PREFIX + memoryId;
 			String contentKey = "chat:session:content:" + memoryId;
+			String historyKey = "chat:session:history:" + memoryId;
 
 			// 从用户会话列表中移除
 			stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
@@ -139,6 +143,8 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 			stringRedisTemplate.delete(infoKey);
 			// 删除会话内容（AI 记忆）
 			stringRedisTemplate.delete(contentKey);
+			// 删除历史记录
+			stringRedisTemplate.delete(historyKey);
 
 			log.info("用户 {} 批量删除会话 {}", userId, memoryId);
 		}

@@ -1178,37 +1178,27 @@ onUnmounted(() => {
         </div>
 
         <div class="action-cell">
-          <button
-            class="icon-btn theme-toggle"
+          <div
+            class="theme-switch"
+            :class="isDarkMode ? 'dark' : 'light'"
             @click="toggleTheme"
             :title="isDarkMode ? '切换亮色' : '切换暗色'"
           >
-            <svg
-              v-if="isDarkMode"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="5" />
-              <path
-                d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
-              />
-            </svg>
-            <svg
-              v-else
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          </button>
+            <div class="theme-switch-track">
+              <span class="theme-icon light-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5" />
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
+              </span>
+              <span class="theme-icon dark-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              </span>
+            </div>
+            <div class="theme-switch-thumb"></div>
+          </div>
 
           <div class="username-display">
             <svg
@@ -1829,13 +1819,14 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 0 12px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+  height: 40px;
 }
 
 .username-display svg {
@@ -1864,6 +1855,104 @@ body {
 
 .icon-btn:active {
   transform: scale(0.96);
+}
+
+/* Theme Switch Toggle */
+.theme-switch {
+  width: 70px;
+  height: 40px;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.theme-switch-track {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.theme-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transition: opacity var(--duration-fast) var(--ease-smooth);
+}
+
+.theme-icon.light-icon {
+  color: #f59e0b;
+  opacity: 1;
+}
+
+.theme-icon.dark-icon {
+  color: #60a5fa;
+  opacity: 0.5;
+}
+
+.theme-switch.dark .theme-icon.light-icon {
+  opacity: 0.5;
+}
+
+.theme-switch.dark .theme-icon.dark-icon {
+  opacity: 1;
+}
+
+.theme-switch.light .theme-icon.light-icon {
+  opacity: 1;
+}
+
+.theme-switch.light .theme-icon.dark-icon {
+  opacity: 0.5;
+}
+
+.theme-switch-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: all var(--duration-normal) var(--ease-smooth);
+  z-index: 2;
+}
+
+.theme-switch.dark .theme-switch-thumb {
+  transform: translateX(32px);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.theme-switch.light .theme-switch-thumb {
+  background: #e0e0e0;
+  border-color: var(--border);
+}
+
+.theme-switch:hover .theme-switch-thumb {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.theme-switch.light:hover .theme-switch-thumb {
+  background: #b0b0b0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.theme-switch.dark:hover .theme-switch-thumb {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 /* Chat Stage */
