@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import request from '@/utils/request'
+import request from '../utils/request'
 
 interface LoginRequest {
   username: string

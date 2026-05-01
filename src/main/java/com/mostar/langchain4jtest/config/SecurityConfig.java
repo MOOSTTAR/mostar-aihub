@@ -24,15 +24,23 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http.csrf(csrf -> csrf.disable()) // JWT 无状态，禁用 CSRF[reference:2]
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 无状态会话[reference:3]
-				.exceptionHandling(
-						exception -> exception.authenticationEntryPoint((request, response, authException) -> {
+		http.csrf(csrf -> csrf.disable()) // JWT 无状态，禁用 CSRF
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 无状态会话
+				.exceptionHandling(exception -> exception
+						.authenticationEntryPoint((request, response, authException) -> {
 							// 自定义 401 处理，避免与流式响应冲突
 							if (!response.isCommitted()) {
 								response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 								response.setContentType("application/json");
-								response.getWriter().write("{\"code\":401,\"message\":\"未登录或Token已过期\"}");
+								response.getWriter().write("{\"code\":401,\"message\":\"未登录或 Token 已过期\"}");
+							}
+						})
+						.accessDeniedHandler((request, response, accessDeniedException) -> {
+							// 自定义 403 处理
+							if (!response.isCommitted()) {
+								response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+								response.setContentType("application/json");
+								response.getWriter().write("{\"code\":403,\"message\":\"拒绝访问\"}");
 							}
 						}))
 				.authorizeHttpRequests(auth -> auth
@@ -41,7 +49,10 @@ public class SecurityConfig {
 						// 放行 Swagger / Knife4j 相关路径
 						.requestMatchers("/doc.html", "/swagger-resources/**", "/swagger-ui/**", "/v3/api-docs/**",
 								"/webjars/**")
-						.permitAll().anyRequest().authenticated())
+						.permitAll()
+						// 放行错误页面
+						.requestMatchers("/error").permitAll()
+						.anyRequest().authenticated())
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

@@ -67,14 +67,14 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 
 		String sessionKey = SESSION_KEY_PREFIX + userId;
 		String infoKey = SESSION_INFO_PREFIX + memoryId;
-		String memoryKey = memoryId;
+		String contentKey = "chat:session:content:" + memoryId;
 
 		// 从用户会话列表中移除
 		stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
 		// 删除会话信息
 		stringRedisTemplate.delete(infoKey);
-		// 删除会话内容
-		stringRedisTemplate.delete(memoryKey);
+		// 删除会话内容（AI 记忆）
+		stringRedisTemplate.delete(contentKey);
 
 		log.info("用户 {} 删除会话 {}", userId, memoryId);
 	}
@@ -94,19 +94,17 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		// 检查会话是否已存在
 		Boolean exists = stringRedisTemplate.hasKey(infoKey);
 
-		// 保存会话信息
-		Map<String, String> info = new HashMap<>();
-		String title = truncateMessage(firstMessage, 20);
-		info.put("title", title);
-		info.put("createTime", String.valueOf(System.currentTimeMillis()));
-		info.put("userId", String.valueOf(userId));
-
 		if (exists != null && exists) {
-			// 会话已存在，只更新标题（/clear 后的第一次提问）
-			stringRedisTemplate.opsForHash().put(infoKey, "title", title);
-			log.info("用户 {} 更新会话 {} 标题为：{}", userId, memoryId, title);
+			// 会话已存在，不更新标题（保持第一个问题的标题）
+			log.info("用户 {} 在会话 {} 中继续对话", userId, memoryId);
 		} else {
-			// 新会话，创建完整信息
+			// 新会话，保存会话信息
+			Map<String, String> info = new HashMap<>();
+			String title = truncateMessage(firstMessage, 20);
+			info.put("title", title);
+			info.put("createTime", String.valueOf(System.currentTimeMillis()));
+			info.put("userId", String.valueOf(userId));
+
 			stringRedisTemplate.opsForHash().putAll(infoKey, info);
 			log.info("用户 {} 创建新会话 {}，标题：{}", userId, memoryId, title);
 		}
@@ -132,13 +130,14 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 
 		for (String memoryId : memoryIds) {
 			String infoKey = SESSION_INFO_PREFIX + memoryId;
+			String contentKey = "chat:session:content:" + memoryId;
 
 			// 从用户会话列表中移除
 			stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
 			// 删除会话信息
 			stringRedisTemplate.delete(infoKey);
 			// 删除会话内容（AI 记忆）
-			stringRedisTemplate.delete(memoryId);
+			stringRedisTemplate.delete(contentKey);
 
 			log.info("用户 {} 批量删除会话 {}", userId, memoryId);
 		}

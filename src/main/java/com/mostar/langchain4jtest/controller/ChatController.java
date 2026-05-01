@@ -67,6 +67,12 @@ public class ChatController {
 			emitter.completeWithError(error);
 		}, () -> {
 			log.info("Chat completed");
+			// 发送 [DONE] 标记
+			try {
+				emitter.send(SseEmitter.event().data("[DONE]").build());
+			} catch (IOException e) {
+				log.error("Error sending DONE event", e);
+			}
 			emitter.complete();
 		});
 

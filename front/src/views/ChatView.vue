@@ -1,36 +1,65 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
+import { useChatSessionStore, type ChatMessage } from '../stores/chatSession'
 import DOMPurify from 'dompurify'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useChatSessionStore, type ChatMessage } from '@/stores/chatSession'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+
+// MathJax 类型声明
+declare global {
+  interface Window {
+    MathJax?: {
+      tex?: {
+        inlineMath?: string[][]
+        displayMath?: string[][]
+        processEscapes?: boolean
+        packages?: string[]
+      }
+      svg?: {
+        fontCache?: string
+      }
+      startup?: {
+        pageReady?: () => Promise<void>
+        defaultPageReady?: () => Promise<void>
+      }
+      typesetPromise?: (elements?: HTMLElement[]) => Promise<void>
+    }
+    __codeBlocks?: Record<string, string>
+  }
+}
 
 // Taste Skill: Soft UI + Minimalist Fusion
 // Parameters: DESIGN_VARIANCE=5 | MOTION_INTENSITY=7 | VISUAL_DENSITY=3
 
 // 动态加载 MathJax
 const loadMathJax = () => {
-  if ((window as any).MathJax) return Promise.resolve()
+  if (window.MathJax) return Promise.resolve()
 
   return new Promise<void>((resolve) => {
     const script = document.createElement('script')
     script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js'
     script.async = true
-    ;(window as any).MathJax = {
+    window.MathJax = {
       tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        inlineMath: [
+          ['$', '$'],
+          ['\\(', '\\)'],
+        ],
+        displayMath: [
+          ['$$', '$$'],
+          ['\\[', '\\]'],
+        ],
         processEscapes: true,
-        packages: ['base', 'ams', 'noerrors', 'noundefined', 'mhchem']
+        packages: ['base', 'ams', 'noerrors', 'noundefined', 'mhchem'],
       },
       svg: { fontCache: 'global' },
       startup: {
         pageReady: () => {
           resolve()
-          return (window as any).MathJax.startup.defaultPageReady()
-        }
-      }
+          return window.MathJax!.startup!.defaultPageReady!()
+        },
+      },
     }
     document.head.appendChild(script)
   })
@@ -38,7 +67,7 @@ const loadMathJax = () => {
 
 const renderMathJax = async () => {
   await loadMathJax()
-  const MathJax = (window as any).MathJax
+  const MathJax = window.MathJax
   if (MathJax && MathJax.typesetPromise) {
     await MathJax.typesetPromise()
   }
@@ -52,7 +81,7 @@ interface Message {
 
 // 复制代码 - 通过事件委托处理
 const copyCode = async (codeId: string, buttonEl: HTMLElement) => {
-  const code = (window as any).__codeBlocks?.[codeId]
+  const code = window.__codeBlocks?.[codeId]
   if (!code) return
 
   try {
@@ -86,23 +115,263 @@ const handleCopyButtonClick = (event: MouseEvent) => {
   }
 }
 
+// 自动检测代码语言
+const detectLanguage = (code: string): string => {
+  const lines = code.split('\n').filter((line) => line.trim())
+  const firstLines = lines.slice(0, 5).join('\n')
+  const allCode = code
+
+  // Java
+  if (
+    /\b(public|private|protected)\s+class\b/.test(allCode) ||
+    /\bimport\s+java\./.test(firstLines) ||
+    /\bpublic\s+static\s+void\s+main\b/.test(allCode)
+  ) {
+    return 'Java'
+  }
+
+  // Python
+  if (
+    /^import\s+\w+/m.test(firstLines) ||
+    /^from\s+\w+\s+import/.test(firstLines) ||
+    /^def\s+\w+\s*\(/m.test(allCode) ||
+    /^class\s+\w+\s*\(/m.test(allCode) ||
+    /^print\s*\(/.test(firstLines)
+  ) {
+    return 'Python'
+  }
+
+  // JavaScript
+  if (
+    /\bconst\b/.test(allCode) ||
+    /\blet\b/.test(allCode) ||
+    /\bfunction\s*\(/.test(allCode) ||
+    /\b=>\s*{/.test(allCode) ||
+    /\bconsole\.log\b/.test(allCode) ||
+    /\bdocument\./.test(allCode) ||
+    /\brequire\(/.test(allCode)
+  ) {
+    return 'JavaScript'
+  }
+
+  // TypeScript
+  if (
+    /\binterface\s+\w+/.test(allCode) ||
+    /\btype\s+\w+\s*=/.test(allCode) ||
+    /:\s*(string|number|boolean|any)\b/.test(allCode) ||
+    /\bas\s+\w+/.test(allCode)
+  ) {
+    return 'TypeScript'
+  }
+
+  // HTML
+  if (
+    /^<!DOCTYPE html>/i.test(firstLines) ||
+    /^<html/i.test(firstLines) ||
+    /^<div/i.test(firstLines) ||
+    /^<head>/i.test(firstLines)
+  ) {
+    return 'HTML'
+  }
+
+  // CSS
+  if (/{\s*\w+\s*:/.test(allCode) && /[\.#]\w+\s*{/.test(allCode)) {
+    return 'CSS'
+  }
+
+  // SQL
+  if (
+    /^SELECT\s+/i.test(firstLines) ||
+    /^INSERT\s+INTO/i.test(firstLines) ||
+    /^UPDATE\s+/i.test(firstLines) ||
+    /^DELETE\s+FROM/i.test(firstLines) ||
+    /^CREATE\s+TABLE/i.test(firstLines)
+  ) {
+    return 'SQL'
+  }
+
+  // Redis 命令
+  if (
+    /^(SET|GET|DEL|INCR|DECR|LPUSH|RPUSH|LPOP|RPOP|BLPOP|BRPOP|SADD|SMEMBERS|ZADD|ZINCRBY|ZREVRANGE|ZREVRANK|EXPIRE|TTL|HSET|HGET|HGETALL|NX|EX|SETNX)\s+/i.test(
+      firstLines,
+    ) ||
+    /^HMSET\s+/i.test(firstLines) ||
+    /^ZCARD\s+/i.test(firstLines) ||
+    /^SCAN\s+/i.test(firstLines)
+  ) {
+    return 'Redis'
+  }
+
+  // Shell/Bash
+  if (
+    /^#!/.test(firstLines) ||
+    /^\$\s*/.test(firstLines) ||
+    /^echo\s+/m.test(allCode) ||
+    /^cd\s+/m.test(allCode) ||
+    /^\w+=/.test(firstLines)
+  ) {
+    return 'Shell'
+  }
+
+  // JSON
+  if (/^{\s*"/.test(allCode.trim()) || /^\[\s*{/.test(allCode.trim())) {
+    return 'JSON'
+  }
+
+  // XML
+  if (/^<\?xml/.test(firstLines) || /^<\w+:\w+/.test(firstLines)) {
+    return 'XML'
+  }
+
+  // Markdown
+  if (/^#\s+/m.test(allCode) || /^##\s+/m.test(allCode) || /^\*\*.*\*\*/.test(allCode)) {
+    return 'Markdown'
+  }
+
+  // Go
+  if (
+    /^package\s+\w+/m.test(firstLines) ||
+    /\bfunc\s+\w+\(/.test(allCode) ||
+    /\b:=\s*/.test(allCode)
+  ) {
+    return 'Go'
+  }
+
+  // Rust
+  if (/^fn\s+\w+\(/m.test(allCode) || /\blet\s+mut\b/.test(allCode) || /->\s*\w+/.test(allCode)) {
+    return 'Rust'
+  }
+
+  // C#
+  if (
+    /^using\s+\w+;/m.test(firstLines) ||
+    /\bnamespace\s+\w+/.test(allCode) ||
+    /\bConsole\.WriteLine\b/.test(allCode)
+  ) {
+    return 'C#'
+  }
+
+  // C/C++
+  if (
+    /#include\s*</.test(firstLines) ||
+    /\bint\s+main\s*\(/.test(allCode) ||
+    /\bstd::/.test(allCode)
+  ) {
+    return 'C++'
+  }
+
+  // PHP
+  if (/^<\?php/.test(firstLines) || /^\$/.test(firstLines) || /\becho\s+\$/.test(allCode)) {
+    return 'PHP'
+  }
+
+  // Ruby
+  if (
+    /^require\s+/.test(firstLines) ||
+    /^def\s+\w+/.test(firstLines) ||
+    /^puts\s+/.test(firstLines) ||
+    (lines.length > 0 && /^end$/.test(lines[lines.length - 1]!))
+  ) {
+    return 'Ruby'
+  }
+
+  return 'Code'
+}
 
 const renderContent = (content: string) => {
   if (!content) return ''
 
-  // ========== 调试日志：查看 AI 原始输出内容 ==========
-  console.log('========== AI 原始输出内容 ==========')
-  console.log(content)
-  console.log('========================================')
-
   // 直接使用 AI 返回的 HTML，只用 DOMPurify 过滤 XSS
   const sanitized = DOMPurify.sanitize(content, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'i', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'hr'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class', 'style', 'border', 'cellspacing', 'cellpadding'],
+    ALLOWED_TAGS: [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'i',
+      'code',
+      'pre',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'blockquote',
+      'a',
+      'img',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'div',
+      'span',
+      'hr',
+      'button',
+    ],
+    ALLOWED_ATTR: [
+      'href',
+      'target',
+      'rel',
+      'src',
+      'alt',
+      'title',
+      'class',
+      'style',
+      'border',
+      'cellspacing',
+      'cellpadding',
+      'data-lang',
+      'data-code-id',
+    ],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea'],
-    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur']
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
   })
-  return sanitized
+
+  // 为代码块添加复制按钮和语言标签
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = sanitized
+  const pres = tempDiv.querySelectorAll('pre')
+  pres.forEach((pre, index) => {
+    // 优先使用 data-lang 属性，否则自动检测
+    let lang: string = pre.getAttribute('data-lang') || ''
+    const code = pre.querySelector('code')?.textContent || ''
+
+    if (!lang) {
+      lang = detectLanguage(code)
+    }
+
+    const codeId = `code-${Date.now()}-${index}`
+    window.__codeBlocks = window.__codeBlocks || {}
+    window.__codeBlocks[codeId] = code
+
+    // 添加复制按钮
+    const button = document.createElement('button')
+    button.className = 'copy-code-btn'
+    button.setAttribute('data-code-id', codeId)
+    button.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+      <span class="copy-text">复制</span>
+    `
+    ;(pre as HTMLElement).style.position = 'relative'
+    pre.appendChild(button)
+
+    // 添加语言标签
+    const langBadge = document.createElement('span')
+    langBadge.className = 'code-lang-badge'
+    langBadge.textContent = lang
+    pre.insertBefore(langBadge, button)
+  })
+
+  return tempDiv.innerHTML
 }
 
 const messages = ref<Message[]>([])
@@ -114,6 +383,9 @@ const thinkingTimer = ref<number | null>(null)
 const chatContainer = ref<HTMLDivElement>()
 const isTyping = ref(false)
 const sidebarCollapsed = ref(false)
+
+// 跟踪正在进行的 AI 响应所属的会话
+let streamingMemoryId: string | null = null
 
 // 批量删除相关
 const isBatchDeleteMode = ref(false)
@@ -129,6 +401,11 @@ const sessionStore = useChatSessionStore()
 
 // 返回大厅
 const goBack = () => {
+  // AI 回复期间禁止返回
+  if (streamingMemoryId !== null) {
+    ElMessage.warning('AI 正在回复中，请稍后再返回大厅')
+    return
+  }
   router.push('/')
 }
 
@@ -137,12 +414,23 @@ const sessionMemoryId = ref(Date.now().toString())
 
 // 新建对话 - 清空消息并生成新的 memoryId
 const clearChat = () => {
+  // AI 回复期间禁止新建对话
+  if (streamingMemoryId !== null) {
+    ElMessage.warning('AI 正在回复中，请稍后再新建对话')
+    return
+  }
   messages.value = []
   sessionMemoryId.value = Date.now().toString()
 }
 
 // 切换到指定会话
 const switchSession = async (memoryId: string) => {
+  // AI 回复期间禁止切换
+  if (streamingMemoryId !== null) {
+    ElMessage.warning('AI 正在回复中，请稍后再切换')
+    return
+  }
+
   if (memoryId === sessionMemoryId.value) return
 
   // 先设置加载状态，防止界面闪烁
@@ -153,9 +441,9 @@ const switchSession = async (memoryId: string) => {
   // 加载历史消息
   const history = await sessionStore.loadHistory(memoryId)
   messages.value = history.map((msg: ChatMessage, index: number) => ({
-    role: msg.role === 'user' ? 'user' : 'assistant' as ('user' | 'assistant'),
+    role: msg.role === 'user' ? 'user' : ('assistant' as 'user' | 'assistant'),
     content: msg.content,
-    id: generateId() + index
+    id: generateId() + index,
   }))
 
   isSwitchingSession.value = false
@@ -169,7 +457,7 @@ const handleDeleteSession = async (memoryId: string, event: Event) => {
     await ElMessageBox.confirm('确定要删除这个会话吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
     })
     const success = await sessionStore.deleteSession(memoryId)
     if (success) {
@@ -214,7 +502,9 @@ const toggleSelectAll = () => {
 
 // 是否全选
 const isAllSelected = computed(() => {
-  return sessionStore.sessions.length > 0 && selectedSessions.value.size === sessionStore.sessions.length
+  return (
+    sessionStore.sessions.length > 0 && selectedSessions.value.size === sessionStore.sessions.length
+  )
 })
 
 const batchDeleteSessions = async () => {
@@ -224,11 +514,15 @@ const batchDeleteSessions = async () => {
   }
 
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedSessions.value.size} 个会话吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedSessions.value.size} 个会话吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
 
     const success = await sessionStore.deleteSessions(Array.from(selectedSessions.value))
     if (success) {
@@ -255,13 +549,18 @@ const scrollToBottom = async () => {
   if (chatContainer.value) {
     chatContainer.value.scrollTo({
       top: chatContainer.value.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
   await renderMathJax()
 }
 
 const handleLogout = async () => {
+  // AI 回复期间禁止退出
+  if (streamingMemoryId !== null) {
+    ElMessage.warning('AI 正在回复中，请稍后再退出登录')
+    return
+  }
   await authStore.logout()
   router.push('/login')
 }
@@ -271,7 +570,9 @@ const sendMessage = async () => {
   if (!message || loading.value) return
 
   // 检查是否是新会话（不在侧边栏列表中）
-  const existingSession = sessionStore.sessions.find((s: { memoryId: string }) => s.memoryId === sessionMemoryId.value)
+  const existingSession = sessionStore.sessions.find(
+    (s: { memoryId: string }) => s.memoryId === sessionMemoryId.value,
+  )
   if (!existingSession) {
     // 立即在侧边栏添加新会话
     sessionStore.addSession(sessionMemoryId.value, message.substring(0, 20))
@@ -280,6 +581,11 @@ const sendMessage = async () => {
   // 添加用户消息
   messages.value.push({ role: 'user', content: message, id: generateId() })
   inputMessage.value = ''
+
+  // 标记当前会话正在接收 AI 响应（在请求之前设置，防止思考期间可以点击）
+  const currentMemoryId = sessionMemoryId.value
+  streamingMemoryId = currentMemoryId
+
   loading.value = true
   isTyping.value = true
   startThinkingTimer()
@@ -298,12 +604,15 @@ const sendMessage = async () => {
     }
 
     // 使用 fetch 读取 SSE 流
-    const response = await fetch(`/api/chat?message=${encodeURIComponent(message)}&memoryId=${sessionMemoryId.value}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'text/event-stream'
-      }
-    })
+    const response = await fetch(
+      `/api/chat?message=${encodeURIComponent(message)}&memoryId=${currentMemoryId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'text/event-stream',
+        },
+      },
+    )
 
     // 处理 401 错误
     if (response.status === 401) {
@@ -318,36 +627,84 @@ const sendMessage = async () => {
     if (!reader) throw new Error('无法获取响应')
 
     let fullContent = ''
-    messages.value.push({ role: 'assistant', content: '', id: aiMessageId })
-    loading.value = false
+
+    // 如果当前会话正在接收 AI 响应，更新已有消息；否则创建新消息
+    const existingMsg = messages.value.find((m) => m.id === aiMessageId && m.role === 'assistant')
+    if (!existingMsg) {
+      messages.value.push({ role: 'assistant', content: '', id: aiMessageId })
+    }
 
     // 读取 SSE 流并实时显示
     let buffer = ''
+    let receivedDone = false
+    let emptyReadCount = 0 // 记录空读取次数
+    let hasReceivedFirstChunk = false // 是否已收到第一个响应
+
     while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+      // 使用 Promise.race 实现超时控制
+      const readPromise = reader.read()
+      const timeoutPromise = new Promise<ReadableStreamReadResult<Uint8Array>>((resolve) => {
+        setTimeout(() => {
+          resolve({ done: true, value: undefined })
+        }, 3000) // 3 秒超时
+      })
+
+      const { done, value } = await Promise.race([readPromise, timeoutPromise])
+
+      if (done) {
+        break
+      }
 
       const chunk = decoder.decode(value, { stream: true })
+
+      // 如果 chunk 为空，增加空读取计数
+      if (!chunk || chunk.length === 0) {
+        emptyReadCount++
+        if (emptyReadCount >= 3) {
+          break
+        }
+        continue
+      }
+
+      emptyReadCount = 0 // 重置空读取计数
+
       buffer += chunk
 
       // 处理 SSE 格式：每行 data:xxx
       const lines = buffer.split(/\r?\n/)
-      buffer = lines.pop() || ''  // 保留最后不完整的一行
+      buffer = lines.pop() || '' // 保留最后不完整的一行
 
       for (const line of lines) {
         if (line.startsWith('data:')) {
-          const data = line.substring(5)
-          if (data && data.trim() !== '[DONE]') {
+          const data = line.substring(5).trim()
+          if (data === '[DONE]') {
+            receivedDone = true
+            break
+          }
+          if (data) {
             fullContent += data
+
+            // 收到第一个有效响应时，关闭 loading 状态
+            if (!hasReceivedFirstChunk) {
+              hasReceivedFirstChunk = true
+              isTyping.value = false
+            }
           }
         }
       }
 
-      // 实时更新消息内容
-      const msg = messages.value.find(m => m.id === aiMessageId)
+      if (receivedDone) {
+        break
+      }
+
+      // 实时更新消息内容（无论当前是否在该会话）
+      const msg = messages.value.find((m) => m.id === aiMessageId)
       if (msg) {
         msg.content = fullContent
-        await scrollToBottom()
+        // 只有在当前会话才滚动
+        if (sessionMemoryId.value === currentMemoryId) {
+          await scrollToBottom()
+        }
       }
     }
 
@@ -359,25 +716,35 @@ const sendMessage = async () => {
       }
     }
 
-    // ========== 调试日志：查看后端返回的原始内容 ==========
-    console.log('========== AI 回复原始内容 ==========')
-    console.log(fullContent)
-    console.log('========== 原始内容结束 ==========')
-    // ===================================================
+    // SSE 完成，清除所有状态
+    streamingMemoryId = null
+    loading.value = false
+    isTyping.value = false
+    stopThinkingTimer()
 
     // 刷新会话列表（如果是新会话）
     await sessionStore.fetchSessions()
 
-    await renderMathJax()
+    // 只有在当前会话才渲染 MathJax
+    if (sessionMemoryId.value === currentMemoryId) {
+      await renderMathJax()
+    }
   } catch (error) {
     console.error('聊天出错:', error)
-    const msg = messages.value.find(m => m.id === aiMessageId)
-    if (msg) msg.content = '抱歉，发生了错误，请稍后重试。'
-    else messages.value.push({ role: 'assistant', content: '抱歉，发生了错误，请稍后重试。', id: generateId() })
-  } finally {
+    // 出错时清除所有状态
+    streamingMemoryId = null
     loading.value = false
     isTyping.value = false
     stopThinkingTimer()
+
+    const msg = messages.value.find((m) => m.id === aiMessageId)
+    if (msg) msg.content = '抱歉，发生了错误，请稍后重试。'
+    else
+      messages.value.push({
+        role: 'assistant',
+        content: '抱歉，发生了错误，请稍后重试。',
+        id: generateId(),
+      })
   }
 }
 
@@ -416,8 +783,8 @@ const clearChatWithApi = async () => {
     const response = await fetch(`/api/chat/clear?memoryId=${sessionMemoryId.value}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     if (response.status === 401) {
@@ -479,6 +846,7 @@ const stopThinkingTimer = () => {
     clearInterval(thinkingTimer.value)
     thinkingTimer.value = null
   }
+  thinkingSeconds.value = 0 // 重置思考时间
 }
 
 // 输入框焦点动画
@@ -486,9 +854,7 @@ const isInputFocused = ref(false)
 const showCommands = ref(false)
 
 // 可用指令列表
-const commands = [
-  { name: '/clear', description: '清空当前对话记录和 AI 记忆' }
-]
+const commands = [{ name: '/clear', description: '清空当前对话记录和 AI 记忆' }]
 
 // 插入指令到输入框
 const insertCommand = (cmd: string) => {
@@ -504,12 +870,39 @@ const handleOutsideClick = (e: MouseEvent) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   initTheme()
   sessionStore.fetchSessions()
   document.addEventListener('click', handleOutsideClick)
-  // 绑定复制按钮点击事件委托到消息容器
-  chatContainer.value?.addEventListener('click', handleCopyButtonClick)
+  bindCopyButtonEvent()
+})
+
+// 绑定复制按钮事件
+const bindCopyButtonEvent = async () => {
+  await nextTick()
+  if (chatContainer.value) {
+    chatContainer.value.addEventListener('click', handleCopyButtonClick)
+  }
+}
+
+watch(
+  messages,
+  () => {
+    nextTick(() => {
+      bindCopyButtonEvent()
+    })
+  },
+  { deep: true },
+)
+
+// 监听会话切换，处理正在进行的流式响应
+watch(sessionMemoryId, (newMemoryId, oldMemoryId) => {
+  if (!oldMemoryId) return
+
+  // 如果有正在进行的流式响应，切换回来时恢复显示
+  if (streamingMemoryId === newMemoryId && loading.value) {
+    // 消息已经在后台接收，不需要额外操作
+  }
 })
 
 onUnmounted(() => {
@@ -521,40 +914,118 @@ onUnmounted(() => {
 <template>
   <div class="chat-layout">
     <!-- Sidebar - Session List -->
-    <aside class="sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+    <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
-        <button v-if="!isBatchDeleteMode" class="new-chat-btn-sidebar" @click="clearChat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
+        <button
+          v-if="!isBatchDeleteMode"
+          class="new-chat-btn-sidebar"
+          @click="clearChat"
+          :disabled="streamingMemoryId !== null"
+          :style="{
+            opacity: streamingMemoryId !== null ? '0.5' : '1',
+            cursor: streamingMemoryId !== null ? 'not-allowed' : 'pointer',
+          }"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           <span>新对话</span>
         </button>
-        <button v-if="!isBatchDeleteMode && sessionStore.sessions.length > 0" class="batch-delete-btn-sidebar" @click="toggleBatchDeleteMode">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        <button
+          v-if="!isBatchDeleteMode && sessionStore.sessions.length > 0"
+          class="batch-delete-btn-sidebar"
+          @click="toggleBatchDeleteMode"
+          :disabled="streamingMemoryId !== null"
+          :style="{
+            opacity: streamingMemoryId !== null ? '0.5' : '1',
+            cursor: streamingMemoryId !== null ? 'not-allowed' : 'pointer',
+          }"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            />
           </svg>
         </button>
-        <button v-if="isBatchDeleteMode" class="batch-action-btn batch-select-all-btn" @click="toggleSelectAll" :title="isAllSelected ? '取消全选' : '全选'">
-          <svg v-if="isAllSelected" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none"/>
-            <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
+        <button
+          v-if="isBatchDeleteMode"
+          class="batch-action-btn batch-select-all-btn"
+          @click="toggleSelectAll"
+          :title="isAllSelected ? '取消全选' : '全选'"
+        >
+          <svg
+            v-if="isAllSelected"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" fill="var(--accent)" stroke="none" />
+            <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
           </svg>
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <svg
+            v-else
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
           </svg>
         </button>
-        <button v-if="isBatchDeleteMode" class="batch-action-btn batch-confirm-btn" @click="batchDeleteSessions" :disabled="selectedSessions.size === 0">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
+        <button
+          v-if="isBatchDeleteMode"
+          class="batch-action-btn batch-confirm-btn"
+          @click="batchDeleteSessions"
+          :disabled="selectedSessions.size === 0"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>一键删除</span>
         </button>
-        <button v-if="isBatchDeleteMode" class="batch-action-btn batch-cancel-btn" @click="cancelBatchDelete">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6" y1="6" x2="18" y2="18"/>
+        <button
+          v-if="isBatchDeleteMode"
+          class="batch-action-btn batch-cancel-btn"
+          @click="cancelBatchDelete"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
           <span>取消</span>
         </button>
@@ -570,28 +1041,80 @@ onUnmounted(() => {
             v-for="session in sessionStore.sessions"
             :key="session.memoryId"
             class="session-item"
-            :class="{ 'active': session.memoryId === sessionMemoryId, 'selected': selectedSessions.has(session.memoryId) }"
+            :class="{
+              active: session.memoryId === sessionMemoryId,
+              selected: selectedSessions.has(session.memoryId),
+              disabled: streamingMemoryId !== null,
+            }"
+            :style="{
+              'pointer-events':
+                streamingMemoryId !== null && session.memoryId !== sessionMemoryId
+                  ? 'none'
+                  : 'auto',
+              opacity:
+                streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
+            }"
             @click="switchSession(session.memoryId)"
           >
-            <div v-if="isBatchDeleteMode" class="session-checkbox" @click="toggleSessionSelection(session.memoryId, $event)">
-              <svg v-if="selectedSessions.has(session.memoryId)" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)"/>
-                <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5"/>
+            <div
+              v-if="isBatchDeleteMode"
+              class="session-checkbox"
+              @click="toggleSessionSelection(session.memoryId, $event)"
+            >
+              <svg
+                v-if="selectedSessions.has(session.memoryId)"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
+                <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
               </svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <svg
+                v-else
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
               </svg>
             </div>
             <div v-else class="session-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
             <div class="session-title">{{ session.title }}</div>
-            <button class="delete-btn" @click="handleDeleteSession(session.memoryId, $event)" v-if="!isBatchDeleteMode">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            <button
+              class="delete-btn"
+              @click="handleDeleteSession(session.memoryId, $event)"
+              v-if="!isBatchDeleteMode"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="3 6 5 6 21 6" />
+                <path
+                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                />
               </svg>
             </button>
           </div>
@@ -604,16 +1127,42 @@ onUnmounted(() => {
       <!-- Bento Grid Header -->
       <header class="bento-header">
         <div class="brand-cell">
-          <button class="icon-btn sidebar-toggle-mobile" @click="sidebarCollapsed = !sidebarCollapsed">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
+          <button
+            class="icon-btn sidebar-toggle-mobile"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <button class="icon-btn back-btn" @click="goBack" title="返回大厅">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15 18 9 12 15 6"/>
+          <button
+            class="icon-btn back-btn"
+            @click="goBack"
+            title="返回大厅"
+            :disabled="streamingMemoryId !== null"
+            :style="{
+              opacity: streamingMemoryId !== null ? '0.5' : '1',
+              cursor: streamingMemoryId !== null ? 'not-allowed' : 'pointer',
+            }"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
           <div class="logo-pulse"></div>
@@ -621,29 +1170,74 @@ onUnmounted(() => {
         </div>
 
         <div class="action-cell">
-          <button class="icon-btn theme-toggle" @click="toggleTheme" :title="isDarkMode ? '切换亮色' : '切换暗色'">
-            <svg v-if="isDarkMode" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          <button
+            class="icon-btn theme-toggle"
+            @click="toggleTheme"
+            :title="isDarkMode ? '切换亮色' : '切换暗色'"
+          >
+            <svg
+              v-if="isDarkMode"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="5" />
+              <path
+                d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+              />
             </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            <svg
+              v-else
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           </button>
 
           <div class="username-display">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
             </svg>
             <span>{{ authStore.userInfo?.username || '用户' }}</span>
           </div>
 
-          <button class="icon-btn logout-btn" @click="handleLogout" title="退出登录">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+          <button
+            class="icon-btn logout-btn"
+            @click="handleLogout"
+            title="退出登录"
+            :disabled="streamingMemoryId !== null"
+            :style="{
+              opacity: streamingMemoryId !== null ? '0.5' : '1',
+              cursor: streamingMemoryId !== null ? 'not-allowed' : 'pointer',
+            }"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </button>
         </div>
@@ -660,8 +1254,15 @@ onUnmounted(() => {
         <div v-else-if="messages.length === 0" class="empty-bento">
           <div class="welcome-card">
             <div class="welcome-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
             </div>
             <h2 class="welcome-title">开始对话</h2>
@@ -686,14 +1287,30 @@ onUnmounted(() => {
             <!-- Avatar -->
             <div class="avatar-wrapper">
               <div class="avatar" :class="msg.role">
-                <svg v-if="msg.role === 'user'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
+                <svg
+                  v-if="msg.role === 'user'"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
                 </svg>
-                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <svg
+                  v-else
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
             </div>
@@ -706,13 +1323,20 @@ onUnmounted(() => {
           </div>
 
           <!-- Loading State -->
-          <div v-if="loading" class="message-bento assistant loading-enter">
+          <div v-if="isTyping" class="message-bento assistant loading-enter">
             <div class="avatar-wrapper">
               <div class="avatar assistant">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
             </div>
@@ -735,11 +1359,16 @@ onUnmounted(() => {
           <!-- 指令按钮和弹窗 -->
           <div class="commands-wrapper">
             <button class="command-btn" @click="showCommands = !showCommands" title="查看指令">
-              <span style="font-size: 18px; font-weight: 600; font-family: monospace;">/</span>
+              <span style="font-size: 18px; font-weight: 600; font-family: monospace">/</span>
             </button>
             <!-- 指令列表弹窗 -->
             <div v-if="showCommands" class="commands-dropdown">
-              <div v-for="cmd in commands" :key="cmd.name" class="command-item" @click="insertCommand(cmd.name)">
+              <div
+                v-for="cmd in commands"
+                :key="cmd.name"
+                class="command-item"
+                @click="insertCommand(cmd.name)"
+              >
                 <span class="command-name">{{ cmd.name }}</span>
                 <span class="command-desc">{{ cmd.description }}</span>
               </div>
@@ -762,9 +1391,16 @@ onUnmounted(() => {
               @click="sendMessage"
               :class="{ 'has-content': inputMessage.trim() }"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>
             </button>
           </div>
@@ -843,7 +1479,7 @@ onUnmounted(() => {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 10px;
-  color: #EF4444;
+  color: #ef4444;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -851,7 +1487,7 @@ onUnmounted(() => {
 
 .batch-delete-btn-sidebar:hover {
   background: rgba(239, 68, 68, 0.1);
-  border-color: #EF4444;
+  border-color: #ef4444;
 }
 
 /* 批量操作按钮组 */
@@ -872,12 +1508,12 @@ onUnmounted(() => {
 
 .batch-confirm-btn {
   flex: 1;
-  background: #EF4444;
+  background: #ef4444;
   color: white;
 }
 
 .batch-confirm-btn:hover:not(:disabled) {
-  background: #DC2626;
+  background: #dc2626;
   transform: translateY(-1px);
 }
 
@@ -948,7 +1584,7 @@ onUnmounted(() => {
 
 .session-item.selected {
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #EF4444;
+  border: 1px solid #ef4444;
 }
 
 .session-checkbox {
@@ -999,7 +1635,7 @@ onUnmounted(() => {
 
 .delete-btn:hover {
   background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
+  color: #ef4444;
 }
 
 /* Mobile Sidebar Toggle */
@@ -1012,7 +1648,7 @@ onUnmounted(() => {
     position: absolute;
     z-index: 100;
     height: 100%;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar.collapsed {
@@ -1040,16 +1676,16 @@ onUnmounted(() => {
 
 /* CSS Custom Properties - Soft Monochrome Palette */
 :root {
-  --bg-canvas: #FDFBF7;
-  --bg-elevated: #FFFFFF;
-  --bg-subtle: #F5F3EF;
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #A3A3A3;
-  --accent: #4A7C9B;
+  --bg-canvas: #fdfbf7;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f5f3ef;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #a3a3a3;
+  --accent: #4a7c9b;
   --accent-soft: rgba(74, 124, 155, 0.08);
-  --accent-hover: #3D6A85;
-  --border: #E8E6E1;
+  --accent-hover: #3d6a85;
+  --border: #e8e6e1;
   --border-subtle: rgba(0, 0, 0, 0.06);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1058,17 +1694,17 @@ onUnmounted(() => {
   --duration-slow: 500ms;
 }
 
-[data-theme="dark"] {
-  --bg-canvas: #0F0F0F;
-  --bg-elevated: #1A1A1A;
+[data-theme='dark'] {
+  --bg-canvas: #0f0f0f;
+  --bg-elevated: #1a1a1a;
   --bg-subtle: #141414;
-  --text-primary: #F5F5F5;
-  --text-secondary: #A0A0A0;
-  --text-tertiary: #6B6B6B;
-  --accent: #6B9BC3;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #6b6b6b;
+  --accent: #6b9bc3;
   --accent-soft: rgba(107, 155, 195, 0.12);
-  --accent-hover: #8AB4D4;
-  --border: #2A2A2A;
+  --accent-hover: #8ab4d4;
+  --border: #2a2a2a;
   --border-subtle: rgba(255, 255, 255, 0.06);
 }
 
@@ -1082,30 +1718,30 @@ onUnmounted(() => {
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: #D0D0D0;
+  background: #d0d0d0;
   border-radius: 3px;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: #B0B0B0;
+  background: #b0b0b0;
 }
 
 /* 黑暗模式滚动条 */
-[data-theme="dark"] .sidebar-content::-webkit-scrollbar {
+[data-theme='dark'] .sidebar-content::-webkit-scrollbar {
   width: 6px;
 }
 
-[data-theme="dark"] .sidebar-content::-webkit-scrollbar-track {
+[data-theme='dark'] .sidebar-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb {
-  background: #3A3A3A;
+[data-theme='dark'] .sidebar-content::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
   border-radius: 3px;
 }
 
-[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: #4A4A4A;
+[data-theme='dark'] .sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 * {
@@ -1114,8 +1750,13 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-html, body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+html,
+body {
+  font-family:
+    'Plus Jakarta Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   background: var(--bg-canvas);
   color: var(--text-primary);
   height: 100%;
@@ -1152,8 +1793,15 @@ html, body {
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.9); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
 }
 
 .brand-title {
@@ -1274,7 +1922,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .welcome-title {
@@ -1339,8 +1989,14 @@ html, body {
 }
 
 @keyframes message-enter {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .loading-enter {
@@ -1348,8 +2004,12 @@ html, body {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .avatar-wrapper {
@@ -1451,12 +2111,22 @@ html, body {
   animation: thinking-bounce 1.4s ease-in-out infinite;
 }
 
-.thinking-dot:nth-child(2) { animation-delay: 0.2s; }
-.thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes thinking-bounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-6px); }
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
 }
 
 .thinking-time {
@@ -1515,7 +2185,7 @@ html, body {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   padding: 8px;
   z-index: 100;
 }
@@ -1560,7 +2230,9 @@ html, body {
 
 .input-bento.is-focused {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 20px var(--border-subtle);
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 4px 20px var(--border-subtle);
   transform: translateY(-1px);
 }
 
@@ -1618,8 +2290,12 @@ html, body {
 }
 
 /* Markdown Styling - Typora-like */
-.message-bubble :deep(p) { margin: 0 0 16px; }
-.message-bubble :deep(p:last-child) { margin-bottom: 0; }
+.message-bubble p {
+  margin: 0 0 16px;
+}
+.message-bubble p:last-child {
+  margin-bottom: 0;
+}
 
 /* 代码块容器 - 圆角矩形背景 */
 .code-block-wrapper {
@@ -1632,7 +2308,7 @@ html, body {
 }
 
 /* 黑暗模式代码块背景 - 浅色 */
-[data-theme="dark"] .code-block-wrapper {
+[data-theme='dark'] .code-block-wrapper {
   background: #2d2d2d;
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -1649,7 +2325,7 @@ html, body {
 }
 
 /* 黑暗模式代码块头部 */
-[data-theme="dark"] .code-header {
+[data-theme='dark'] .code-header {
   background: rgba(0, 0, 0, 0.25);
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
@@ -1679,135 +2355,43 @@ html, body {
   font-family: 'Consolas', monospace;
 }
 
-/* 复制代码按钮 - 精致设计 */
-.copy-code-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  color: rgba(0, 0, 0, 0.4);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* 黑暗模式代码块样式 */
+[data-theme='dark'] .message-bubble pre {
+  background: #1a1a1a;
+  border-color: #333;
 }
 
-.copy-code-btn:hover {
-  background: rgba(0, 0, 0, 0.15);
-  color: #1a1a1a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+[data-theme='dark'] .message-bubble .code-lang-badge {
+  color: #888;
 }
 
-.copy-code-btn:active {
-  transform: translateY(0);
+[data-theme='dark'] .message-bubble .copy-code-btn {
+  color: #888;
+  border-color: #333;
 }
 
-/* 黑暗模式行号 - 与黑暗模式代码块背景一致 */
-[data-theme="dark"] .code-line-numbers {
-  background: transparent;
-  border-right-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
-}
-
-/* 黑暗模式复制按钮 - 与白天模式一致 */
-[data-theme="dark"] .copy-code-btn {
-  background: transparent !important;
-  color: rgba(255, 255, 255, 0.4);
-  border: none !important;
-}
-
-[data-theme="dark"] .copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: #fff !important;
-}
-
-[data-theme="dark"] .copy-code-btn svg {
-  stroke: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .copy-code-btn:hover svg {
-  stroke: #fff;
-}
-
-.copy-code-btn.copied {
-  background: #10b981;
+[data-theme='dark'] .message-bubble .copy-code-btn:hover {
+  background: #2a2a2a;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  border-color: #666;
 }
 
-.copy-code-btn svg {
-  width: 14px;
-  height: 14px;
+[data-theme='dark'] .message-bubble code {
+  color: #e0e0e0;
 }
 
-/* 代码块 */
-.code-block-wrapper pre {
-  background: transparent;
-  padding: 20px 0 20px 16px;
-  overflow-x: auto;
-  margin: 0;
-  font-family: 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre;
-}
-
-.code-block-wrapper pre code {
-  background: transparent;
-  padding: 0;
-  font-family: inherit;
-  font-size: inherit;
-  color: #2d2d2d;
-  white-space: pre;
-}
-
-/* 代码内容包装器 - 行号 + 代码 */
+/* 旧代码块容器样式（保留兼容性） */
 .code-content-wrapper {
   display: flex;
   align-items: stretch;
 }
 
-/* 黑暗模式代码文本 - 浅色 */
-[data-theme="dark"] .code-block-wrapper pre code {
-  color: #e0e0e0;
-}
-
-/* 黑暗模式代码内容包装器 */
-[data-theme="dark"] .code-content-wrapper {
-  background: #2d2d2d;
-}
-
-/* 黑暗模式代码块头部和按钮 */
-[data-theme="dark"] .code-header {
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .code-lang {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-[data-theme="dark"] .copy-code-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-[data-theme="dark"] .copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.message-bubble :deep(code) {
+.message-bubble code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 0.9em;
 }
 
-.message-bubble :deep(p code) {
+.message-bubble p code {
   background: var(--accent-soft);
   color: var(--accent);
   padding: 3px 8px;
@@ -1816,32 +2400,40 @@ html, body {
   font-size: 0.95em;
 }
 
-.message-bubble :deep(ul),
-.message-bubble :deep(ol) {
-  margin: 12px 0;
-  padding-left: 28px;
-  list-style-type: cjk-decimal;
+/* 列表样式 - 白点和文字都向右缩进 */
+.message-bubble ul,
+.message-bubble ol {
+  margin: 12px 0 !important;
+  padding-left: 20px !important;
 }
 
-.message-bubble :deep(ul) {
-  list-style-type: disc;
+.message-bubble ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
 }
 
-.message-bubble :deep(ul ul) {
-  list-style-type: disc;
+.message-bubble ul ul {
+  list-style-type: disc !important;
 }
 
-.message-bubble :deep(li) {
-  margin: 8px 0;
-  line-height: 1.7;
+.message-bubble ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
 }
 
-.message-bubble :deep(li::marker) {
-  color: var(--accent);
+.message-bubble li {
+  margin: 8px 0 !important;
+  line-height: 1.7 !important;
+  padding-left: 8px !important;
+}
+
+.message-bubble li::marker {
+  color: var(--accent) !important;
+  font-weight: 500 !important;
 }
 
 /* Headers - Typora-like */
-.message-bubble :deep(h1) {
+.message-bubble h1 {
   font-size: 28px;
   font-weight: 700;
   margin: 24px 0 16px;
@@ -1851,7 +2443,7 @@ html, body {
   letter-spacing: -0.02em;
 }
 
-.message-bubble :deep(h2) {
+.message-bubble h2 {
   font-size: 24px;
   font-weight: 600;
   margin: 24px 0 14px;
@@ -1862,7 +2454,7 @@ html, body {
 }
 
 /* Blockquote */
-.message-bubble :deep(blockquote) {
+.message-bubble blockquote {
   margin: 16px 0;
   padding: 12px 20px;
   border-left: 4px solid var(--accent);
@@ -1872,7 +2464,7 @@ html, body {
   font-style: italic;
 }
 
-.message-bubble :deep(blockquote p:last-child) {
+.message-bubble blockquote p:last-child {
   margin-bottom: 0;
 }
 
@@ -1901,16 +2493,66 @@ html, body {
   background: var(--bg-subtle);
 }
 
-/* Code blocks */
+/* Code blocks - 带语言标签和复制按钮 */
 .message-bubble pre {
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
+  padding-top: 36px; /* 为语言标签和复制按钮留出空间 */
   overflow-x: auto;
   margin: 16px 0;
-  white-space: pre-wrap !important;  /* 保留换行符 */
+  white-space: pre-wrap !important;
   word-break: break-all;
+  position: relative;
+}
+
+/* 语言标签 */
+.message-bubble .code-lang-badge {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  pointer-events: none;
+}
+
+/* 复制按钮样式 */
+.message-bubble .copy-code-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.message-bubble .copy-code-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.message-bubble .copy-code-btn.copied {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.message-bubble .copy-code-btn svg {
+  width: 13px;
+  height: 13px;
 }
 
 .message-bubble code {
@@ -1918,7 +2560,7 @@ html, body {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-primary);
-  white-space: pre-wrap !important;  /* 保留换行符 */
+  white-space: pre-wrap !important;
 }
 
 .message-bubble pre code {
@@ -1936,55 +2578,61 @@ html, body {
 }
 
 /* Horizontal Rule */
-.message-bubble :deep(hr) {
+.message-bubble hr {
   border: none;
   border-top: 2px solid var(--border);
   margin: 24px 0;
 }
 
 /* Image */
-.message-bubble :deep(img) {
+.message-bubble img {
   max-width: 100%;
   border-radius: 12px;
   margin: 12px 0;
 }
 
 /* Link */
-.message-bubble :deep(a) {
+.message-bubble a {
   color: var(--accent);
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.2s ease;
 }
 
-.message-bubble :deep(a:hover) {
+.message-bubble a:hover {
   border-bottom-color: var(--accent);
 }
 
 /* Bold and Italic */
-.message-bubble :deep(strong) {
+.message-bubble strong {
   font-weight: 900 !important;
   color: var(--text-primary);
 }
 
-.message-bubble :deep(em) {
+.message-bubble em {
   font-style: italic;
   color: var(--text-primary);
 }
 
 /* Checkbox / Task List */
-.message-bubble :deep(input[type="checkbox"]) {
+.message-bubble input[type='checkbox'] {
   margin-right: 8px;
 }
 
-.message-bubble :deep(.task-list-item) {
+.message-bubble .task-list-item {
   list-style: none;
   margin-left: -20px;
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .stagger-enter {

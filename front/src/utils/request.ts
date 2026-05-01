@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '@/stores/auth'
-import router from '@/router'
+import { useAuthStore } from '../stores/auth'
+import router from '../router'
 
 // 扩展 AxiosRequestConfig 类型以支持自定义属性
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {

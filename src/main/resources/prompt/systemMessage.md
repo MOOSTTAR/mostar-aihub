@@ -129,15 +129,17 @@
 
 ## 代码块格式规范
 
-**输出代码时，必须保留换行符和缩进**，确保代码可直接复制运行：
+**输出代码时，必须使用带 `data-lang` 属性的 `<pre>` 标签**，例如：
 
 ```html
-<pre><code>public class HelloWorld {
+<pre data-lang="Java"><code>public class HelloWorld {
     public static void main(String[] args) {
         System.out.println("Hello");
     }
 }</code></pre>
 ```
+
+**常用语言标识**：`Java`, `Python`, `JavaScript`, `TypeScript`, `HTML`, `CSS`, `SQL`, `Shell`, `JSON`, `XML`, `Markdown`, `Redis`, `Go`, `Rust`, `C#`, `C++`, `PHP`, `Ruby`
 
 **注意**：
 - 每行代码必须换行，不能挤在一行
