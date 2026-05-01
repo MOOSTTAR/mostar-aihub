@@ -104,10 +104,13 @@ public class ChatController {
 	public Result<String> clearChat(@RequestParam String memoryId, HttpServletRequest request) {
 		log.info("Clear chat memory - memoryId: {}", memoryId);
 
-		// 清空 Redis 中的 AI 记忆（上下文）
+		// 1. 先将当前 AI 记忆追加到历史记录
+		redisChatMemoryStore.appendToHistory(memoryId);
+
+		// 2. 清空 Redis 中的 AI 记忆（上下文）
 		redisChatMemoryStore.deleteMessages(memoryId);
 
-		// 更新会话标题为"新对话"
+		// 3. 更新会话标题为"新对话"
 		Long userId = getUserIdFromRequest(request);
 		if (userId != null) {
 			chatSessionService.updateSessionTitle(memoryId, "新对话", userId);

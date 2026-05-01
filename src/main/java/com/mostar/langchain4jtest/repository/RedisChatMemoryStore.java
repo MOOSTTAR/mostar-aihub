@@ -32,18 +32,48 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
 		String key = CONTENT_PREFIX + memoryId.toString();
 		String json = ChatMessageSerializer.messagesToJson(list);
 		stringRedisTemplate.opsForValue().set(key, json);
-
-		// 同时保存到历史记录（用于前端显示）
-		saveToHistory(memoryId.toString(), list);
 	}
 
 	/**
-	 * 保存消息到历史记录（前端显示用）
+	 * 将当前 AI 记忆追加到历史记录（/clear 时调用）
 	 */
-	public void saveToHistory(String memoryId, List<ChatMessage> messages) {
-		String key = HISTORY_PREFIX + memoryId;
-		String json = ChatMessageSerializer.messagesToJson(messages);
-		stringRedisTemplate.opsForValue().set(key, json);
+	@SuppressWarnings("null")
+	public void appendToHistory(Object memoryId) {
+		String contentKey = CONTENT_PREFIX + memoryId.toString();
+		String historyKey = HISTORY_PREFIX + memoryId.toString();
+
+		// 获取当前 AI 记忆
+		String contentJson = stringRedisTemplate.opsForValue().get(contentKey);
+		if (contentJson == null || contentJson.isEmpty()) {
+			return; // 没有内容，不需要追加
+		}
+
+		List<ChatMessage> currentMessages = ChatMessageDeserializer.messagesFromJson(contentJson);
+		if (currentMessages.isEmpty()) {
+			return;
+		}
+
+		// 获取已有历史记录
+		String historyJson = stringRedisTemplate.opsForValue().get(historyKey);
+		List<ChatMessage> historyMessages = List.of();
+		if (historyJson != null && !historyJson.isEmpty()) {
+			historyMessages = ChatMessageDeserializer.messagesFromJson(historyJson);
+		}
+
+		// 追加新消息（去重：跳过已存在的消息）
+		List<ChatMessage> mergedMessages = new java.util.ArrayList<>(historyMessages);
+		for (ChatMessage msg : currentMessages) {
+			// 简单去重：如果消息内容已存在则跳过
+			boolean exists = mergedMessages.stream()
+					.anyMatch(m -> m.toString().equals(msg.toString()));
+			if (!exists) {
+				mergedMessages.add(msg);
+			}
+		}
+
+		// 保存合并后的历史记录
+		String mergedJson = ChatMessageSerializer.messagesToJson(mergedMessages);
+		stringRedisTemplate.opsForValue().set(historyKey, mergedJson);
 	}
 
 	/**
