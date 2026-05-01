@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
 	 * @return
 	 */
 	@ExceptionHandler
-	public Result exceptionHandler(BaseException ex) {
+	public Result<?> exceptionHandler(BaseException ex) {
 		log.error("异常信息：{}", ex.getMessage());
 		return Result.error(ex.getMessage());
 	}
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
 	 * @return
 	 */
 	@ExceptionHandler
-	public Result exceptionHandler(SQLIntegrityConstraintViolationException ex) {
+	public Result<?> exceptionHandler(SQLIntegrityConstraintViolationException ex) {
 		String message = ex.getMessage();
 		if (message.contains("Duplicate entry")) { // 有重复键值对
 			String[] split = message.split(" ");
