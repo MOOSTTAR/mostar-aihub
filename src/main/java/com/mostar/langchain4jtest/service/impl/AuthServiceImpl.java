@@ -124,6 +124,7 @@ public class AuthServiceImpl implements AuthService {
 	 *            原始 JWT
 	 * @return 续期后的新 token，如果 token 已失效则返回 null
 	 */
+	@SuppressWarnings("null")
 	public String renewToken(String token) {
 		// 1. 校验 JWT 签名
 		if (!jwtUtil.verify(token)) {
