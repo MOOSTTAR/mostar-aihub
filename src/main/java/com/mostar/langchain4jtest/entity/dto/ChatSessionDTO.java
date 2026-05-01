@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class ChatSessionDTO {
-    private String memoryId;
-    private String title;
-    private Long createTime;
+	private String memoryId;
+	private String title;
+	private Long createTime;
 }

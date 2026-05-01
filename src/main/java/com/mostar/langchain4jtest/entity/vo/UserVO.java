@@ -27,26 +27,24 @@ import lombok.experimental.Accessors;
 @TableName("user")
 public class UserVO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * 主键ID（无符号整数，支持42.9亿用户量）
-     */
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+	/**
+	 * 主键ID（无符号整数，支持42.9亿用户量）
+	 */
+	@TableId(value = "id", type = IdType.AUTO)
+	private Long id;
 
+	/**
+	 * 用户名，最大10个字符（可包含汉字/字母/数字）
+	 */
+	@TableField("username")
+	private String username;
 
-    /**
-     * 用户名，最大10个字符（可包含汉字/字母/数字）
-     */
-    @TableField("username")
-    private String username;
-
-    /**
-     * jwt令牌
-     */
-    @TableField("status")
-    private String token;
-
+	/**
+	 * jwt令牌
+	 */
+	@TableField("status")
+	private String token;
 
 }

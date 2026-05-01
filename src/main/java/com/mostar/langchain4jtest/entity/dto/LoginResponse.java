@@ -4,8 +4,8 @@ import lombok.Data;
 
 @Data
 public class LoginResponse {
-    private String token;
-    private Long userId;
-    private String username;
-    private Long expiresIn;  // token 有效期（秒）
+	private String token;
+	private Long userId;
+	private String username;
+	private Long expiresIn; // token 有效期（秒）
 }

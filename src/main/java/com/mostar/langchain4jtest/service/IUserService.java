@@ -14,11 +14,11 @@ import com.mostar.langchain4jtest.entity.po.User;
  */
 public interface IUserService extends IService<User> {
 
-    User getByUsername(String username);
+	User getByUsername(String username);
 
-    boolean register(String username, String phonenum, String rawPassword, String avatarUrl);
+	boolean register(String username, String phonenum, String rawPassword, String avatarUrl);
 
-    boolean checkPassword(String rawPassword, String encodedPassword);
+	boolean checkPassword(String rawPassword, String encodedPassword);
 
-    User login(UserDTO userDTO);
+	User login(UserDTO userDTO);
 }

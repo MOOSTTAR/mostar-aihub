@@ -23,54 +23,52 @@ import jakarta.annotation.Resource;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
-    @Resource
-    private PasswordEncoder passwordEncoder;
+	@Resource
+	private PasswordEncoder passwordEncoder;
 
+	/**
+	 * 根据用户名查询用户
+	 */
+	@Override
+	public User getByUsername(String username) {
+		LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+		wrapper.eq(User::getUsername, username);
+		return getOne(wrapper);
+	}
 
-    /**
-     * 根据用户名查询用户
-     */
-    @Override
-    public User getByUsername(String username) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUsername, username);
-        return getOne(wrapper);
-    }
+	/**
+	 * 注册新用户（密码自动加密）
+	 */
+	@Override
+	public boolean register(String username, String phonenum, String rawPassword, String avatarUrl) {
+		if (username == null || username.trim().isEmpty() || phonenum == null || phonenum.trim().isEmpty()
+				|| rawPassword == null || rawPassword.isEmpty()) {
+			throw new IllegalArgumentException("用户名、手机号、密码不能为空");
+		}
+		// TODO 验证码 前端验证手机号格式，密码格式，用户名格式
+		User user = new User();
+		user.setUsername(username);
+		user.setPhonenum(phonenum);
+		user.setPassword(passwordEncoder.encode(rawPassword));
+		user.setAvatarUrl(avatarUrl);
+		user.setStatus(1);
+		return save(user);
+	}
 
-    /**
-     * 注册新用户（密码自动加密）
-     */
-    @Override
-    public boolean register(String username, String phonenum, String rawPassword, String avatarUrl) {
-        if (username == null || username.trim().isEmpty() ||
-                phonenum == null || phonenum.trim().isEmpty() ||
-                rawPassword == null || rawPassword.isEmpty()) {
-            throw new IllegalArgumentException("用户名、手机号、密码不能为空");
-        }
-        // TODO 验证码  前端验证手机号格式，密码格式，用户名格式
-        User user = new User();
-        user.setUsername(username);
-        user.setPhonenum(phonenum);
-        user.setPassword(passwordEncoder.encode(rawPassword));
-        user.setAvatarUrl(avatarUrl);
-        user.setStatus(1);
-        return save(user);
-    }
+	/**
+	 * 校验密码
+	 */
+	@Override
+	public boolean checkPassword(String rawPassword, String encodedPassword) {
+		return passwordEncoder.matches(rawPassword, encodedPassword);
+	}
 
-    /**
-     * 校验密码
-     */
-    @Override
-    public boolean checkPassword(String rawPassword, String encodedPassword) {
-        return passwordEncoder.matches(rawPassword, encodedPassword);
-    }
+	@Override
+	public User login(UserDTO userDTO) {
+		User user = getByUsername(userDTO.getUsername());
+		if (user != null && checkPassword(userDTO.getPassword(), user.getPassword())) {
 
-    @Override
-    public User login(UserDTO userDTO) {
-        User user = getByUsername(userDTO.getUsername());
-        if (user != null && checkPassword(userDTO.getPassword(), user.getPassword())) {
-
-        }
-        return null;
-    }
+		}
+		return null;
+	}
 }

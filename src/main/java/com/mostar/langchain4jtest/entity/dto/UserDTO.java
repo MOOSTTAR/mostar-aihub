@@ -23,23 +23,23 @@ import lombok.experimental.Accessors;
 @TableName("user")
 public class UserDTO implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * 用户名，最大10个字符（可包含汉字/字母/数字）
-     */
-    @TableField("username")
-    private String username;
+	/**
+	 * 用户名，最大10个字符（可包含汉字/字母/数字）
+	 */
+	@TableField("username")
+	private String username;
 
-    /**
-     * 密码（8-20位数字字母组合，仅数字和字母，加盐哈希）
-     */
-    @TableField("password")
-    private String password;
+	/**
+	 * 密码（8-20位数字字母组合，仅数字和字母，加盐哈希）
+	 */
+	@TableField("password")
+	private String password;
 
-    /**
-     * 1正常 0禁用
-     */
-    @TableField("status")
-    private Integer status;
+	/**
+	 * 1正常 0禁用
+	 */
+	@TableField("status")
+	private Integer status;
 }

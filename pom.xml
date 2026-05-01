@@ -160,6 +160,17 @@
                     <staticAfter>true</staticAfter>
                 </configuration>
             </plugin>
+            <!-- Formatter plugin to format code -->
+            <plugin>
+                <groupId>net.revelc.code.formatter</groupId>
+                <artifactId>formatter-maven-plugin</artifactId>
+                <version>2.24.1</version>
+                <configuration>
+                    <configFile>${project.basedir}/.vscode/eclipse-formatter.xml</configFile>
+                    <encoding>UTF-8</encoding>
+                    <skipHtmlFormatting>true</skipHtmlFormatting>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

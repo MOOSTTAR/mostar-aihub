@@ -18,161 +18,158 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ChatSessionServiceImpl implements ChatSessionService {
 
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
+	@Resource
+	private StringRedisTemplate stringRedisTemplate;
 
-    @Resource
-    private JwtUtil jwtUtil;
+	@Resource
+	private JwtUtil jwtUtil;
 
-    private static final String SESSION_KEY_PREFIX = "chat:sessions:";
-    private static final String SESSION_INFO_PREFIX = "chat:session:info:";
+	private static final String SESSION_KEY_PREFIX = "chat:sessions:";
+	private static final String SESSION_INFO_PREFIX = "chat:session:info:";
 
-    @Override
-    public List<ChatSessionDTO> getUserSessions(HttpServletRequest request) {
-        Long userId = getUserIdFromRequest(request);
-        if (userId == null) {
-            return List.of();
-        }
+	@Override
+	public List<ChatSessionDTO> getUserSessions(HttpServletRequest request) {
+		Long userId = getUserIdFromRequest(request);
+		if (userId == null) {
+			return List.of();
+		}
 
-        String sessionKey = SESSION_KEY_PREFIX + userId;
-        Set<String> memoryIds = stringRedisTemplate.opsForSet().members(sessionKey);
+		String sessionKey = SESSION_KEY_PREFIX + userId;
+		Set<String> memoryIds = stringRedisTemplate.opsForSet().members(sessionKey);
 
-        if (memoryIds == null || memoryIds.isEmpty()) {
-            return List.of();
-        }
+		if (memoryIds == null || memoryIds.isEmpty()) {
+			return List.of();
+		}
 
-        return memoryIds.stream()
-                .map(memoryId -> {
-                    String infoKey = SESSION_INFO_PREFIX + memoryId;
-                    Map<Object, Object> info = stringRedisTemplate.opsForHash().entries(infoKey);
+		return memoryIds.stream().map(memoryId -> {
+			String infoKey = SESSION_INFO_PREFIX + memoryId;
+			Map<Object, Object> info = stringRedisTemplate.opsForHash().entries(infoKey);
 
-                    ChatSessionDTO dto = new ChatSessionDTO();
-                    dto.setMemoryId(memoryId);
-                    dto.setTitle((String) info.getOrDefault("title", "新会话"));
-                    Object createTime = info.get("createTime");
-                    if (createTime != null) {
-                        dto.setCreateTime(Long.parseLong(createTime.toString()));
-                    } else {
-                        dto.setCreateTime(System.currentTimeMillis());
-                    }
-                    return dto;
-                })
-                .sorted(Comparator.comparingLong(ChatSessionDTO::getCreateTime).reversed())
-                .collect(Collectors.toList());
-    }
+			ChatSessionDTO dto = new ChatSessionDTO();
+			dto.setMemoryId(memoryId);
+			dto.setTitle((String) info.getOrDefault("title", "新会话"));
+			Object createTime = info.get("createTime");
+			if (createTime != null) {
+				dto.setCreateTime(Long.parseLong(createTime.toString()));
+			} else {
+				dto.setCreateTime(System.currentTimeMillis());
+			}
+			return dto;
+		}).sorted(Comparator.comparingLong(ChatSessionDTO::getCreateTime).reversed()).collect(Collectors.toList());
+	}
 
-    @Override
-    public void deleteSession(String memoryId, HttpServletRequest request) {
-        Long userId = getUserIdFromRequest(request);
-        if (userId == null) {
-            throw new RuntimeException("未登录");
-        }
+	@Override
+	public void deleteSession(String memoryId, HttpServletRequest request) {
+		Long userId = getUserIdFromRequest(request);
+		if (userId == null) {
+			throw new RuntimeException("未登录");
+		}
 
-        String sessionKey = SESSION_KEY_PREFIX + userId;
-        String infoKey = SESSION_INFO_PREFIX + memoryId;
-        String memoryKey = memoryId;
+		String sessionKey = SESSION_KEY_PREFIX + userId;
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
+		String memoryKey = memoryId;
 
-        // 从用户会话列表中移除
-        stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
-        // 删除会话信息
-        stringRedisTemplate.delete(infoKey);
-        // 删除会话内容
-        stringRedisTemplate.delete(memoryKey);
+		// 从用户会话列表中移除
+		stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
+		// 删除会话信息
+		stringRedisTemplate.delete(infoKey);
+		// 删除会话内容
+		stringRedisTemplate.delete(memoryKey);
 
-        log.info("用户 {} 删除会话 {}", userId, memoryId);
-    }
+		log.info("用户 {} 删除会话 {}", userId, memoryId);
+	}
 
-    @Override
-    public void createSession(String memoryId, String firstMessage, Long userId) {
-        if (userId == null) {
-            return;
-        }
+	@Override
+	public void createSession(String memoryId, String firstMessage, Long userId) {
+		if (userId == null) {
+			return;
+		}
 
-        String sessionKey = SESSION_KEY_PREFIX + userId;
-        String infoKey = SESSION_INFO_PREFIX + memoryId;
+		String sessionKey = SESSION_KEY_PREFIX + userId;
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
 
-        // 添加到用户会话列表
-        stringRedisTemplate.opsForSet().add(sessionKey, memoryId);
+		// 添加到用户会话列表
+		stringRedisTemplate.opsForSet().add(sessionKey, memoryId);
 
-        // 检查会话是否已存在
-        Boolean exists = stringRedisTemplate.hasKey(infoKey);
+		// 检查会话是否已存在
+		Boolean exists = stringRedisTemplate.hasKey(infoKey);
 
-        // 保存会话信息
-        Map<String, String> info = new HashMap<>();
-        String title = truncateMessage(firstMessage, 20);
-        info.put("title", title);
-        info.put("createTime", String.valueOf(System.currentTimeMillis()));
-        info.put("userId", String.valueOf(userId));
+		// 保存会话信息
+		Map<String, String> info = new HashMap<>();
+		String title = truncateMessage(firstMessage, 20);
+		info.put("title", title);
+		info.put("createTime", String.valueOf(System.currentTimeMillis()));
+		info.put("userId", String.valueOf(userId));
 
-        if (exists != null && exists) {
-            // 会话已存在，只更新标题（/clear 后的第一次提问）
-            stringRedisTemplate.opsForHash().put(infoKey, "title", title);
-            log.info("用户 {} 更新会话 {} 标题为：{}", userId, memoryId, title);
-        } else {
-            // 新会话，创建完整信息
-            stringRedisTemplate.opsForHash().putAll(infoKey, info);
-            log.info("用户 {} 创建新会话 {}，标题：{}", userId, memoryId, title);
-        }
-    }
+		if (exists != null && exists) {
+			// 会话已存在，只更新标题（/clear 后的第一次提问）
+			stringRedisTemplate.opsForHash().put(infoKey, "title", title);
+			log.info("用户 {} 更新会话 {} 标题为：{}", userId, memoryId, title);
+		} else {
+			// 新会话，创建完整信息
+			stringRedisTemplate.opsForHash().putAll(infoKey, info);
+			log.info("用户 {} 创建新会话 {}，标题：{}", userId, memoryId, title);
+		}
+	}
 
-    @Override
-    public void updateSessionTitle(String memoryId, String title, Long userId) {
-        if (userId == null || memoryId == null) {
-            return;
-        }
+	@Override
+	public void updateSessionTitle(String memoryId, String title, Long userId) {
+		if (userId == null || memoryId == null) {
+			return;
+		}
 
-        String infoKey = SESSION_INFO_PREFIX + memoryId;
-        stringRedisTemplate.opsForHash().put(infoKey, "title", truncateMessage(title, 20));
-    }
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
+		stringRedisTemplate.opsForHash().put(infoKey, "title", truncateMessage(title, 20));
+	}
 
-    @Override
-    public void deleteSessions(List<String> memoryIds, Long userId) {
-        if (memoryIds == null || memoryIds.isEmpty()) {
-            return;
-        }
+	@Override
+	public void deleteSessions(List<String> memoryIds, Long userId) {
+		if (memoryIds == null || memoryIds.isEmpty()) {
+			return;
+		}
 
-        String sessionKey = SESSION_KEY_PREFIX + userId;
+		String sessionKey = SESSION_KEY_PREFIX + userId;
 
-        for (String memoryId : memoryIds) {
-            String infoKey = SESSION_INFO_PREFIX + memoryId;
+		for (String memoryId : memoryIds) {
+			String infoKey = SESSION_INFO_PREFIX + memoryId;
 
-            // 从用户会话列表中移除
-            stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
-            // 删除会话信息
-            stringRedisTemplate.delete(infoKey);
-            // 删除会话内容（AI 记忆）
-            stringRedisTemplate.delete(memoryId);
+			// 从用户会话列表中移除
+			stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
+			// 删除会话信息
+			stringRedisTemplate.delete(infoKey);
+			// 删除会话内容（AI 记忆）
+			stringRedisTemplate.delete(memoryId);
 
-            log.info("用户 {} 批量删除会话 {}", userId, memoryId);
-        }
+			log.info("用户 {} 批量删除会话 {}", userId, memoryId);
+		}
 
-        log.info("用户 {} 批量删除 {} 个会话完成", userId, memoryIds.size());
-    }
+		log.info("用户 {} 批量删除 {} 个会话完成", userId, memoryIds.size());
+	}
 
-    private Long getUserIdFromRequest(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
+	private Long getUserIdFromRequest(HttpServletRequest request) {
+		String authHeader = request.getHeader("Authorization");
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			return null;
+		}
 
-        String token = authHeader.substring(7);
-        try {
-            return jwtUtil.getUserIdFromToken(token);
-        } catch (Exception e) {
-            log.error("解析token失败", e);
-            return null;
-        }
-    }
+		String token = authHeader.substring(7);
+		try {
+			return jwtUtil.getUserIdFromToken(token);
+		} catch (Exception e) {
+			log.error("解析token失败", e);
+			return null;
+		}
+	}
 
-    private String truncateMessage(String message, int maxLength) {
-        if (message == null || message.isEmpty()) {
-            return "新会话";
-        }
-        // 去除换行符和多余空格
-        String cleaned = message.replaceAll("\\s+", " ").trim();
-        if (cleaned.length() > maxLength) {
-            return cleaned.substring(0, maxLength) + "...";
-        }
-        return cleaned;
-    }
+	private String truncateMessage(String message, int maxLength) {
+		if (message == null || message.isEmpty()) {
+			return "新会话";
+		}
+		// 去除换行符和多余空格
+		String cleaned = message.replaceAll("\\s+", " ").trim();
+		if (cleaned.length() > maxLength) {
+			return cleaned.substring(0, maxLength) + "...";
+		}
+		return cleaned;
+	}
 }

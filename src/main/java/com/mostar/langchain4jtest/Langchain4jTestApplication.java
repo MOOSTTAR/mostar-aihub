@@ -10,8 +10,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @MapperScan("com.mostar.langchain4jtest.mapper")
 public class Langchain4jTestApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Langchain4jTestApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(Langchain4jTestApplication.class, args);
+	}
 
 }

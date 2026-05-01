@@ -8,8 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface ChatHistoryService {
 
-    /**
-     * 获取指定会话的历史消息
-     */
-    List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request);
+	/**
+	 * 获取指定会话的历史消息
+	 */
+	List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request);
 }

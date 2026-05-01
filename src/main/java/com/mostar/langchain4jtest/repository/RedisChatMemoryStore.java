@@ -13,28 +13,28 @@ import jakarta.annotation.Resource;
 
 @Repository
 public class RedisChatMemoryStore implements ChatMemoryStore {
-    @Resource
-    private StringRedisTemplate stringRedisTemplate;
+	@Resource
+	private StringRedisTemplate stringRedisTemplate;
 
-    private static final String CONTENT_PREFIX = "chat:session:content:";
+	private static final String CONTENT_PREFIX = "chat:session:content:";
 
-    @Override
-    public List<ChatMessage> getMessages(Object memoryId) {
-        String key = CONTENT_PREFIX + memoryId.toString();
-        String json = stringRedisTemplate.opsForValue().get(key);
-        return ChatMessageDeserializer.messagesFromJson(json);
-    }
+	@Override
+	public List<ChatMessage> getMessages(Object memoryId) {
+		String key = CONTENT_PREFIX + memoryId.toString();
+		String json = stringRedisTemplate.opsForValue().get(key);
+		return ChatMessageDeserializer.messagesFromJson(json);
+	}
 
-    @Override
-    public void updateMessages(Object memoryId, List<ChatMessage> list) {
-        String key = CONTENT_PREFIX + memoryId.toString();
-        String json = ChatMessageSerializer.messagesToJson(list);
-        stringRedisTemplate.opsForValue().set(key, json);
-    }
+	@Override
+	public void updateMessages(Object memoryId, List<ChatMessage> list) {
+		String key = CONTENT_PREFIX + memoryId.toString();
+		String json = ChatMessageSerializer.messagesToJson(list);
+		stringRedisTemplate.opsForValue().set(key, json);
+	}
 
-    @Override
-    public void deleteMessages(Object memoryId) {
-        String key = CONTENT_PREFIX + memoryId.toString();
-        stringRedisTemplate.delete(key);
-    }
+	@Override
+	public void deleteMessages(Object memoryId) {
+		String key = CONTENT_PREFIX + memoryId.toString();
+		stringRedisTemplate.delete(key);
+	}
 }

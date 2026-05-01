@@ -21,37 +21,35 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ChatHistoryServiceImpl implements ChatHistoryService {
 
-    @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+	@Resource
+	private RedisChatMemoryStore redisChatMemoryStore;
 
-    @Override
-    public List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request) {
-        List<ChatMessage> messages = redisChatMemoryStore.getMessages(memoryId);
+	@Override
+	public List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request) {
+		List<ChatMessage> messages = redisChatMemoryStore.getMessages(memoryId);
 
-        if (messages == null || messages.isEmpty()) {
-            return List.of();
-        }
+		if (messages == null || messages.isEmpty()) {
+			return List.of();
+		}
 
-        return messages.stream()
-                .filter(msg -> !(msg instanceof SystemMessage))  // 过滤掉系统消息
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
+		return messages.stream().filter(msg -> !(msg instanceof SystemMessage)) // 过滤掉系统消息
+				.map(this::convertToDTO).collect(Collectors.toList());
+	}
 
-    private ChatMessageDTO convertToDTO(ChatMessage message) {
-        ChatMessageDTO dto = new ChatMessageDTO();
+	private ChatMessageDTO convertToDTO(ChatMessage message) {
+		ChatMessageDTO dto = new ChatMessageDTO();
 
-        if (message instanceof UserMessage) {
-            dto.setRole("user");
-            dto.setContent(((UserMessage) message).singleText());
-        } else if (message instanceof AiMessage) {
-            dto.setRole("assistant");
-            dto.setContent(((AiMessage) message).text());
-        } else {
-            dto.setRole("unknown");
-            dto.setContent(message.toString());
-        }
+		if (message instanceof UserMessage) {
+			dto.setRole("user");
+			dto.setContent(((UserMessage) message).singleText());
+		} else if (message instanceof AiMessage) {
+			dto.setRole("assistant");
+			dto.setContent(((AiMessage) message).text());
+		} else {
+			dto.setRole("unknown");
+			dto.setContent(message.toString());
+		}
 
-        return dto;
-    }
+		return dto;
+	}
 }

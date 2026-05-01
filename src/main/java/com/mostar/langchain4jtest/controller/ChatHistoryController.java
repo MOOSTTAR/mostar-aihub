@@ -19,11 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ChatHistoryController {
 
-    @Resource
-    private ChatHistoryService chatHistoryService;
+	@Resource
+	private ChatHistoryService chatHistoryService;
 
-    @GetMapping("/{memoryId}")
-    public List<ChatMessageDTO> getChatHistory(@PathVariable String memoryId, HttpServletRequest request) {
-        return chatHistoryService.getChatHistory(memoryId, request);
-    }
+	@GetMapping("/{memoryId}")
+	public List<ChatMessageDTO> getChatHistory(@PathVariable String memoryId, HttpServletRequest request) {
+		return chatHistoryService.getChatHistory(memoryId, request);
+	}
 }

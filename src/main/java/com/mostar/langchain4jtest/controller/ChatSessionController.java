@@ -16,16 +16,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ChatSessionController {
 
-    @Resource
-    private ChatSessionService chatSessionService;
+	@Resource
+	private ChatSessionService chatSessionService;
 
-    @GetMapping
-    public List<ChatSessionDTO> getUserSessions(HttpServletRequest request) {
-        return chatSessionService.getUserSessions(request);
-    }
+	@GetMapping
+	public List<ChatSessionDTO> getUserSessions(HttpServletRequest request) {
+		return chatSessionService.getUserSessions(request);
+	}
 
-    @DeleteMapping("/{memoryId}")
-    public void deleteSession(@PathVariable String memoryId, HttpServletRequest request) {
-        chatSessionService.deleteSession(memoryId, request);
-    }
+	@DeleteMapping("/{memoryId}")
+	public void deleteSession(@PathVariable String memoryId, HttpServletRequest request) {
+		chatSessionService.deleteSession(memoryId, request);
+	}
 }

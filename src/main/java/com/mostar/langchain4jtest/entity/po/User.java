@@ -25,43 +25,42 @@ import lombok.experimental.Accessors;
 @TableName("user")
 public class User implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    /**
-     * 主键ID（无符号整数，支持42.9亿用户量）
-     */
-    @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+	/**
+	 * 主键ID（无符号整数，支持42.9亿用户量）
+	 */
+	@TableId(value = "id", type = IdType.AUTO)
+	private Long id;
 
-    /**
-     * 手机号（11位数字）
-     */
-    @TableField("phonenum")
-    private String phonenum;
+	/**
+	 * 手机号（11位数字）
+	 */
+	@TableField("phonenum")
+	private String phonenum;
 
-    /**
-     * 用户名，最大10个字符（可包含汉字/字母/数字）
-     */
-    @TableField("username")
-    private String username;
+	/**
+	 * 用户名，最大10个字符（可包含汉字/字母/数字）
+	 */
+	@TableField("username")
+	private String username;
 
-    /**
-     * 密码（8-20位数字字母组合，仅数字和字母，加盐哈希）
-     */
-    @TableField("password")
-    private String password;
+	/**
+	 * 密码（8-20位数字字母组合，仅数字和字母，加盐哈希）
+	 */
+	@TableField("password")
+	private String password;
 
-    /**
-     * 用户头像的阿里云OSS访问地址
-     */
-    @TableField("avatar_url")
-    private String avatarUrl;
+	/**
+	 * 用户头像的阿里云OSS访问地址
+	 */
+	@TableField("avatar_url")
+	private String avatarUrl;
 
-    /**
-     * 1正常 0禁用
-     */
-    @TableField("status")
-    private Integer status;
-
+	/**
+	 * 1正常 0禁用
+	 */
+	@TableField("status")
+	private Integer status;
 
 }
