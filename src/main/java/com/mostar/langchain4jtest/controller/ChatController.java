@@ -107,10 +107,10 @@ public class ChatController {
 		// 清空 Redis 中的 AI 记忆
 		redisChatMemoryStore.deleteMessages(memoryId);
 
-		// 重置会话标题为"新对话"
+		// 删除会话信息（标题等），下次提问时会作为新会话重新设置标题
 		Long userId = getUserIdFromRequest(request);
 		if (userId != null) {
-			chatSessionService.updateSessionTitle(memoryId, "新对话", userId);
+			chatSessionService.deleteSessionInfo(memoryId, userId);
 		}
 
 		return Result.ok("清空成功");

@@ -758,10 +758,15 @@ const handleKeydown = (e: KeyboardEvent) => {
 // 处理命令或发送消息
 const handleCommandOrSend = async () => {
   const message = inputMessage.value.trim()
-  if (!message || loading.value) return
+  console.log('[handleCommandOrSend] message:', message, 'loading:', loading.value)
+  if (!message || loading.value) {
+    console.log('[handleCommandOrSend] 跳过：message 为空或 loading 为 true')
+    return
+  }
 
   // 检查是否是/clear 命令
   if (message === '/clear') {
+    console.log('[handleCommandOrSend] 执行 clear 命令')
     inputMessage.value = ''
     await clearChatWithApi()
     return
@@ -798,7 +803,9 @@ const clearChatWithApi = async () => {
       const result = await response.json()
       if (result.code === 200) {
         messages.value = []
+        // 生成新的 memoryId，下次提问时作为新会话，标题为第一个问题
         sessionMemoryId.value = Date.now().toString()
+        // 刷新会话列表
         await sessionStore.fetchSessions()
         ElMessage.success('已清空对话记录')
       } else {

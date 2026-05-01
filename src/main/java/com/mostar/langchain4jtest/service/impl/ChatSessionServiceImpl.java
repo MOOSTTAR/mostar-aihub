@@ -172,4 +172,21 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		}
 		return cleaned;
 	}
+
+	@Override
+	public void deleteSessionInfo(String memoryId, Long userId) {
+		if (userId == null || memoryId == null) {
+			return;
+		}
+
+		String sessionKey = SESSION_KEY_PREFIX + userId;
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
+
+		// 从用户会话列表中移除
+		stringRedisTemplate.opsForSet().remove(sessionKey, memoryId);
+		// 删除会话信息
+		stringRedisTemplate.delete(infoKey);
+
+		log.info("用户 {} 删除会话信息 {}", userId, memoryId);
+	}
 }
