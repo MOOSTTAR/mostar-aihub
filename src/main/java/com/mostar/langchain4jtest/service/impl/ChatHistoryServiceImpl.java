@@ -27,7 +27,8 @@ public class ChatHistoryServiceImpl implements ChatHistoryService {
 
 	@Override
 	public List<ChatMessageDTO> getChatHistory(String memoryId, HttpServletRequest request) {
-		List<ChatMessage> messages = redisChatMemoryStore.getMessages(memoryId);
+		// 从历史记录中获取（前端显示用）
+		List<ChatMessage> messages = redisChatMemoryStore.getHistory(memoryId);
 
 		if (messages == null || messages.isEmpty()) {
 			return List.of();

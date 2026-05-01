@@ -758,15 +758,10 @@ const handleKeydown = (e: KeyboardEvent) => {
 // 处理命令或发送消息
 const handleCommandOrSend = async () => {
   const message = inputMessage.value.trim()
-  console.log('[handleCommandOrSend] message:', message, 'loading:', loading.value)
-  if (!message || loading.value) {
-    console.log('[handleCommandOrSend] 跳过：message 为空或 loading 为 true')
-    return
-  }
+  if (!message || loading.value) return
 
   // 检查是否是/clear 命令
   if (message === '/clear') {
-    console.log('[handleCommandOrSend] 执行 clear 命令')
     inputMessage.value = ''
     await clearChatWithApi()
     return
@@ -802,12 +797,17 @@ const clearChatWithApi = async () => {
     if (response.ok) {
       const result = await response.json()
       if (result.code === 200) {
-        messages.value = []
-        // 生成新的 memoryId，下次提问时作为新会话，标题为第一个问题
-        sessionMemoryId.value = Date.now().toString()
-        // 刷新会话列表
+        // 不清空消息列表，保留历史对话记录
+        // 添加一条 AI 友好提示消息
+        messages.value.push({
+          role: 'assistant',
+          content: result.data || '已清空对话记忆，接下来我将没有之前的上下文记忆哦～',
+          id: generateId()
+        })
+        // 刷新会话列表（标题可能已更新为"新对话"）
         await sessionStore.fetchSessions()
-        ElMessage.success('已清空对话记录')
+        ElMessage.success('已清空对话记忆')
+        await scrollToBottom()
       } else {
         ElMessage.error(result.msg || '清空对话失败')
       }

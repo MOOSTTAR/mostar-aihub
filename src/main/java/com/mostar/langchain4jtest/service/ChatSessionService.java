@@ -32,9 +32,4 @@ public interface ChatSessionService {
 	 * 批量删除会话
 	 */
 	void deleteSessions(List<String> memoryIds, Long userId);
-
-	/**
-	 * 删除会话信息（用于清空对话）
-	 */
-	void deleteSessionInfo(String memoryId, Long userId);
 }
