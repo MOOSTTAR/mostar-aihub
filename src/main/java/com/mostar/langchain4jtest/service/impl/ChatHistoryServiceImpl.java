@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.mostar.langchain4jtest.entity.dto.ChatMessageDTO;
 import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
 import com.mostar.langchain4jtest.service.ChatHistoryService;
+import com.mostar.langchain4jtest.utils.XssFilter;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -41,13 +42,13 @@ public class ChatHistoryServiceImpl implements ChatHistoryService {
 
 		if (message instanceof UserMessage) {
 			dto.setRole("user");
-			dto.setContent(((UserMessage) message).singleText());
+			dto.setContent(XssFilter.filter(((UserMessage) message).singleText()));
 		} else if (message instanceof AiMessage) {
 			dto.setRole("assistant");
-			dto.setContent(((AiMessage) message).text());
+			dto.setContent(XssFilter.filter(((AiMessage) message).text()));
 		} else {
 			dto.setRole("unknown");
-			dto.setContent(message.toString());
+			dto.setContent(XssFilter.filter(message.toString()));
 		}
 
 		return dto;

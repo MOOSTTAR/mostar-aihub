@@ -11,6 +11,7 @@ import com.mostar.langchain4jtest.entity.Result;
 import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
 import com.mostar.langchain4jtest.service.ChatSessionService;
 import com.mostar.langchain4jtest.utils.JwtUtil;
+import com.mostar.langchain4jtest.utils.XssFilter;
 
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import jakarta.annotation.Resource;
@@ -41,15 +42,18 @@ public class ChatController {
 	public SseEmitter chat(@RequestParam String memoryId, @RequestParam String message, HttpServletRequest request) {
 		log.info("Chat request - memoryId: {}, message: {}", memoryId, message);
 
+		// 过滤用户输入，防止 XSS 攻击
+		String safeMessage = XssFilter.filter(message);
+
 		// 获取用户ID并记录会话
 		Long userId = getUserIdFromRequest(request);
 		if (userId != null) {
-			chatSessionService.createSession(memoryId, message, userId);
+			chatSessionService.createSession(memoryId, safeMessage, userId);
 		}
 
 		SseEmitter emitter = new SseEmitter(300000L); // 5分钟超时
 
-		Flux<String> flux = consultantService.chat(memoryId, message);
+		Flux<String> flux = consultantService.chat(memoryId, safeMessage);
 
 		flux.subscribe(content -> {
 			try {

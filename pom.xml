@@ -95,6 +95,18 @@
             <artifactId>hutool-all</artifactId>
             <version>5.8.37</version>
         </dependency>
+        <!-- OWASP HTML Sanitizer - XSS 防护 -->
+        <dependency>
+            <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+            <artifactId>owasp-java-html-sanitizer</artifactId>
+            <version>20240325.1</version>
+        </dependency>
+        <!-- Jsoup - HTML 过滤 -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
         <!-- JWT 依赖（Hutool 内部依赖） -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

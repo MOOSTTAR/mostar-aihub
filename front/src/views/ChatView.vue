@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatSessionStore, type ChatMessage } from '@/stores/chatSession'
@@ -103,7 +104,14 @@ const copyCode = async (code: string, buttonEl: HTMLElement) => {
 
 const renderContent = (content: string) => {
   if (!content) return ''
-  return marked.parse(content) as string
+  const rawHtml = marked.parse(content) as string
+  // 使用 DOMPurify 过滤恶意脚本和危险 HTML 标签
+  return DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'i', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class'],
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur']
+  })
 }
 
 const messages = ref<Message[]>([])

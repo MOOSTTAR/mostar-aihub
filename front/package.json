@@ -18,6 +18,7 @@
     "@element-plus/icons-vue": "^2.3.2",
     "@types/katex": "^0.16.8",
     "axios": "^1.14.0",
+    "dompurify": "^3.4.2",
     "element-plus": "^2.13.6",
     "marked": "^17.0.5",
     "mathjax": "^4.1.1",
