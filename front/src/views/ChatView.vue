@@ -2478,7 +2478,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: #666;
-  background: rgba(0, 0, 0, 0.04); /* 与 header 背景色一致 */
+  background: transparent;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   cursor: pointer;
@@ -2486,7 +2486,7 @@ body {
 }
 
 .message-bubble .copy-code-btn:hover {
-  background: rgba(0, 0, 0, 0.08); /* 悬停时与 header 悬停色一致 */
+  background: rgba(0, 0, 0, 0.06);
   color: #333;
   border-color: rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
@@ -2516,12 +2516,12 @@ body {
 /* 黑暗模式复制按钮 */
 [data-theme='dark'] .message-bubble .copy-code-btn {
   color: #a0a0a0;
-  background: rgba(255, 255, 255, 0.05); /* 与 header 背景色一致 */
+  background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .message-bubble .copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.08); /* 悬停时与 header 悬停色一致 */
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.2);
 }
