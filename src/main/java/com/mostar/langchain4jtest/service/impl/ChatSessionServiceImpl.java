@@ -111,6 +111,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 	}
 
 	@Override
+	@SuppressWarnings("null")
 	public void updateSessionTitle(String memoryId, String title, Long userId) {
 		if (userId == null || memoryId == null) {
 			return;
