@@ -2466,31 +2466,28 @@ body {
   color: #999;
 }
 
-/* 复制按钮样式 - 精致设计 */
+/* 复制按钮样式 - 无边框无背景 */
 .message-bubble .copy-code-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
   font-weight: 500;
   color: #666;
   background: transparent;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
 }
 
 .message-bubble .copy-code-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(0, 0, 0, 0.05);
   color: #333;
-  border-color: rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .message-bubble .copy-code-btn:active {
@@ -2515,15 +2512,14 @@ body {
 
 /* 黑暗模式复制按钮 */
 [data-theme='dark'] .message-bubble .copy-code-btn {
-  color: #a0a0a0;
+  color: #999;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
 }
 
 [data-theme='dark'] .message-bubble .copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 代码内容区域 */
