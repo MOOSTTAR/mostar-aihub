@@ -1,6 +1,7 @@
 package com.mostar.langchain4jtest.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -122,7 +123,7 @@ public class ChatController {
 	 * 批量删除会话
 	 */
 	@PostMapping("/sessions/batch-delete")
-	public Result<String> batchDeleteSessions(@RequestBody java.util.List<String> memoryIds,
+	public Result<String> batchDeleteSessions(@RequestBody List<String> memoryIds,
 			HttpServletRequest request) {
 		log.info("Batch delete sessions - memoryIds: {}", memoryIds);
 
