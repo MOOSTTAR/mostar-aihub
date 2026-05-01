@@ -82,6 +82,7 @@ public class AuthServiceImpl implements AuthService {
 	 *            原始 JWT
 	 * @return token（可能是新 token），如果失效则返回 null
 	 */
+	@SuppressWarnings("null")
 	public String validateAndRenewIfNeeded(String token) {
 		// 1. 校验 JWT 签名
 		if (!jwtUtil.verify(token)) {
