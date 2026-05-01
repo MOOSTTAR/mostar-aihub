@@ -69,6 +69,7 @@ public class JwtUtil {
 	/**
 	 * 从 Token 中获取用户ID
 	 */
+	@SuppressWarnings("null")
 	public Long getUserIdFromToken(String token) {
 		JWT jwt = JWTUtil.parseToken(token);
 		Number userIdNum = (Number) jwt.getPayload("userId");
@@ -78,6 +79,7 @@ public class JwtUtil {
 	/**
 	 * 从 Token 中获取用户名
 	 */
+	@SuppressWarnings("null")
 	public String getUsernameFromToken(String token) {
 		JWT jwt = JWTUtil.parseToken(token);
 		return (String) jwt.getPayload("username");
@@ -86,12 +88,14 @@ public class JwtUtil {
 	/**
 	 * 获取 Token 的过期时间
 	 */
+	@SuppressWarnings("null")
 	public Date getExpirationDate(String token) {
 		JWT jwt = JWTUtil.parseToken(token);
 		Number expSeconds = (Number) jwt.getPayload("exp");
 		return new Date(expSeconds.longValue() * 1000);
 	}
 
+	@SuppressWarnings("null")
 	public Boolean getRememberMeFromToken(String token) {
 		JWT jwt = JWTUtil.parseToken(token);
 		return (Boolean) jwt.getPayload("rememberMe");

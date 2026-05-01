@@ -1,6 +1,5 @@
 package com.mostar.langchain4jtest.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,13 +12,14 @@ import com.mostar.langchain4jtest.entity.dto.LoginRequest;
 import com.mostar.langchain4jtest.entity.dto.LoginResponse;
 import com.mostar.langchain4jtest.service.AuthService;
 
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-	@Autowired
+	@Resource
 	private AuthService authService;
 
 	@GetMapping("/test")
