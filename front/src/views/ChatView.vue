@@ -2297,89 +2297,6 @@ body {
   margin-bottom: 0;
 }
 
-/* 代码块容器 - 圆角矩形背景 */
-.code-block-wrapper {
-  margin: 16px 0;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #e8e4de;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* 黑暗模式代码块背景 - 浅色 */
-[data-theme='dark'] .code-block-wrapper {
-  background: #2d2d2d;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* 代码块头部 - 颜色稍深，与行号和代码区分 */
-.code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-/* 黑暗模式代码块头部 */
-[data-theme='dark'] .code-header {
-  background: rgba(0, 0, 0, 0.25);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-/* 行号背景 - 与代码块背景一致 */
-.code-line-numbers {
-  flex-shrink: 0;
-  display: block;
-  padding: 20px 4px 20px 8px;
-  background: rgba(0, 0, 0, 0.02);
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
-  font-family: 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  color: rgba(0, 0, 0, 0.3);
-  text-align: right;
-  user-select: none;
-  -webkit-user-select: none;
-  white-space: pre;
-}
-
-.code-lang {
-  font-size: 12px;
-  font-weight: 600;
-  color: #5a5a5a;
-  text-transform: lowercase;
-  font-family: 'Consolas', monospace;
-}
-
-/* 黑暗模式代码块样式 */
-[data-theme='dark'] .message-bubble pre {
-  background: #1a1a1a;
-  border-color: #333;
-}
-
-[data-theme='dark'] .message-bubble .code-lang-badge {
-  color: #888;
-}
-
-[data-theme='dark'] .message-bubble .copy-code-btn {
-  color: #888;
-  border-color: #333;
-}
-
-[data-theme='dark'] .message-bubble .copy-code-btn:hover {
-  background: #2a2a2a;
-  color: #fff;
-  border-color: #666;
-}
-
-[data-theme='dark'] .message-bubble code {
-  color: #e0e0e0;
-}
-
 /* 旧代码块容器样式（保留兼容性） */
 .code-content-wrapper {
   display: flex;
@@ -2493,88 +2410,148 @@ body {
   background: var(--bg-subtle);
 }
 
-/* Code blocks - 带语言标签和复制按钮 */
+/* Code blocks - 专业代码块样式 */
 .message-bubble pre {
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  padding-top: 36px; /* 为语言标签和复制按钮留出空间 */
+  background: #f5f5f5; /* 亮色模式：浅灰色背景 */
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 0;
   overflow-x: auto;
   margin: 16px 0;
   white-space: pre-wrap !important;
   word-break: break-all;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 黑暗模式代码块背景 - 深色 */
+[data-theme='dark'] .message-bubble pre {
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 代码块头部区域 */
+.message-bubble pre::before {
+  content: '';
+  display: block;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px 12px 0 0;
+}
+
+/* 黑暗模式代码块头部 */
+[data-theme='dark'] .message-bubble pre::before {
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 /* 语言标签 */
 .message-bubble .code-lang-badge {
   position: absolute;
   top: 10px;
-  left: 12px;
+  left: 14px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #666;
   text-transform: uppercase;
   font-family: 'JetBrains Mono', 'Consolas', monospace;
   pointer-events: none;
+  letter-spacing: 0.05em;
 }
 
-/* 复制按钮样式 */
+/* 黑暗模式语言标签 */
+[data-theme='dark'] .message-bubble .code-lang-badge {
+  color: #999;
+}
+
+/* 复制按钮样式 - 精致设计 */
 .message-bubble .copy-code-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
   font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .message-bubble .copy-code-btn:hover {
-  background: var(--bg-elevated);
-  color: var(--accent);
-  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+  border-color: rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.message-bubble .copy-code-btn:active {
+  transform: translateY(0);
 }
 
 .message-bubble .copy-code-btn.copied {
+  background: rgba(16, 185, 129, 0.15);
   color: #10b981;
-  border-color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.message-bubble .copy-code-btn .copy-text {
+  font-size: 11px;
+  opacity: 0.9;
 }
 
 .message-bubble .copy-code-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
 }
 
-.message-bubble code {
+/* 黑暗模式复制按钮 */
+[data-theme='dark'] .message-bubble .copy-code-btn {
+  color: #a0a0a0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .message-bubble .copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 代码内容区域 */
+.message-bubble pre code {
+  display: block;
+  padding: 16px 20px;
+  padding-top: 16px;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-primary);
+  line-height: 1.7;
+  color: #333; /* 亮色模式：深色文字 */
   white-space: pre-wrap !important;
+  background: transparent;
 }
 
-.message-bubble pre code {
-  background: transparent;
-  padding: 0;
+/* 黑暗模式代码文字颜色 */
+[data-theme='dark'] .message-bubble pre code {
+  color: #e0e0e0;
 }
 
 /* Inline code */
 .message-bubble p code {
-  background: var(--bg-subtle);
+  background: var(--accent-soft);
   color: var(--accent);
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
   font-size: 0.9em;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
 }
 
 /* Horizontal Rule */
