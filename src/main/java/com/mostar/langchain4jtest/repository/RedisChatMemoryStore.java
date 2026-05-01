@@ -1,14 +1,15 @@
 package com.mostar.langchain4jtest.repository;
 
+import java.util.List;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Repository;
+
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public class RedisChatMemoryStore implements ChatMemoryStore {

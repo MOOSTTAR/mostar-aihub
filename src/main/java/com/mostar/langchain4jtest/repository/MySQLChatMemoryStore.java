@@ -1,9 +1,9 @@
 package com.mostar.langchain4jtest.repository;
 
+import java.util.List;
+
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-
-import java.util.List;
 
 public class MySQLChatMemoryStore implements ChatMemoryStore {
     @Override

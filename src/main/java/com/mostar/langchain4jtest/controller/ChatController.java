@@ -1,20 +1,22 @@
 package com.mostar.langchain4jtest.controller;
 
+import java.io.IOException;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import com.mostar.langchain4jtest.aiservice.ConsultantService;
 import com.mostar.langchain4jtest.entity.Result;
 import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
 import com.mostar.langchain4jtest.service.ChatSessionService;
 import com.mostar.langchain4jtest.utils.JwtUtil;
+
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
-
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/chat")

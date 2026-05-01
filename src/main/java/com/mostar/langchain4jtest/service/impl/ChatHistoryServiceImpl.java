@@ -1,19 +1,21 @@
 package com.mostar.langchain4jtest.service.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.mostar.langchain4jtest.entity.dto.ChatMessageDTO;
 import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
 import com.mostar.langchain4jtest.service.ChatHistoryService;
-import dev.langchain4j.data.message.ChatMessage;
+
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service

@@ -1,8 +1,8 @@
 package com.mostar.langchain4jtest.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.mostar.langchain4jtest.entity.dto.UserDTO;
 import com.mostar.langchain4jtest.entity.po.User;
-import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
  * <p>

@@ -1,16 +1,15 @@
 package com.mostar.langchain4jtest.config;
 
-import com.mostar.langchain4jtest.aiservice.ConsultantService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import com.mostar.langchain4jtest.repository.RedisChatMemoryStore;
+
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.service.AiServices;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class CommonConfig {

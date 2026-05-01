@@ -2,16 +2,6 @@ package com.mostar.langchain4jtest.service;
 
 import com.mostar.langchain4jtest.entity.dto.LoginRequest;
 import com.mostar.langchain4jtest.entity.dto.LoginResponse;
-import com.mostar.langchain4jtest.entity.po.User;
-import com.mostar.langchain4jtest.utils.JwtUtil;
-import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 public interface AuthService {
 

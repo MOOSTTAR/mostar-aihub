@@ -1,7 +1,7 @@
 package com.mostar.langchain4jtest.mapper;
 
-import com.mostar.langchain4jtest.entity.po.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.mostar.langchain4jtest.entity.po.User;
 
 /**
  * <p>

@@ -1,8 +1,6 @@
 package com.mostar.langchain4jtest.controller;
 
-
 import org.springframework.web.bind.annotation.RequestMapping;
-
 import org.springframework.web.bind.annotation.RestController;
 
 /**

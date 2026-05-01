@@ -1,13 +1,14 @@
 package com.mostar.langchain4jtest.handler;
 
-import com.mostar.langchain4jtest.constants.MessageConstant;
-import com.mostar.langchain4jtest.entity.Result;
-import com.mostar.langchain4jtest.exception.BaseException;
-import lombok.extern.slf4j.Slf4j;
+import java.sql.SQLIntegrityConstraintViolationException;
+
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.sql.SQLIntegrityConstraintViolationException;
+import com.mostar.langchain4jtest.entity.Result;
+import com.mostar.langchain4jtest.exception.BaseException;
+
+import lombok.extern.slf4j.Slf4j;
 
 import static com.mostar.langchain4jtest.constants.MessageConstant.ALREADY_EXISTS;
 import static com.mostar.langchain4jtest.constants.MessageConstant.UNKNOWN_ERROR;

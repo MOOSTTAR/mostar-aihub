@@ -1,16 +1,18 @@
 package com.mostar.langchain4jtest.controller;
 
-import com.mostar.langchain4jtest.entity.dto.ChatMessageDTO;
-import com.mostar.langchain4jtest.service.ChatHistoryService;
-import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.mostar.langchain4jtest.entity.dto.ChatMessageDTO;
+import com.mostar.langchain4jtest.service.ChatHistoryService;
+
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/chat/history")

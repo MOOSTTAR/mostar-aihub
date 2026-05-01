@@ -149,6 +149,17 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <!-- Impsort plugin to organize imports -->
+            <plugin>
+                <groupId>net.revelc.code</groupId>
+                <artifactId>impsort-maven-plugin</artifactId>
+                <version>1.12.0</version>
+                <configuration>
+                    <groups>java.,javax.,org.,com.</groups>
+                    <removeUnused>true</removeUnused>
+                    <staticAfter>true</staticAfter>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

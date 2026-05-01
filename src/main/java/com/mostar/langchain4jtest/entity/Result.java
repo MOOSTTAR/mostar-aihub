@@ -1,8 +1,9 @@
 package com.mostar.langchain4jtest.entity;
 
+import org.slf4j.MDC;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import org.slf4j.MDC;
 
 import static com.mostar.langchain4jtest.constants.CodeConstants.*;
 import static com.mostar.langchain4jtest.constants.Constants.REQUEST_ID_HEADER;

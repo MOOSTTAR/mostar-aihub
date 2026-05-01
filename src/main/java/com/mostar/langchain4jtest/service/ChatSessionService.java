@@ -1,9 +1,10 @@
 package com.mostar.langchain4jtest.service;
 
-import com.mostar.langchain4jtest.entity.dto.ChatSessionDTO;
-import jakarta.servlet.http.HttpServletRequest;
-
 import java.util.List;
+
+import com.mostar.langchain4jtest.entity.dto.ChatSessionDTO;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 public interface ChatSessionService {
 
