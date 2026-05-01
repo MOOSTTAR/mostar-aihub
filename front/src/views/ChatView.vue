@@ -2450,7 +2450,7 @@ body {
 /* 语言标签 */
 .message-bubble .code-lang-badge {
   position: absolute;
-  top: 6px;
+  top: 10px;
   left: 14px;
   font-size: 11px;
   font-weight: 600;
