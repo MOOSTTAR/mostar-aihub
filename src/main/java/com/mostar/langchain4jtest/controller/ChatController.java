@@ -19,7 +19,6 @@ import com.mostar.langchain4jtest.service.ChatSessionService;
 import com.mostar.langchain4jtest.utils.JwtUtil;
 import com.mostar.langchain4jtest.utils.XssFilter;
 
-import dev.langchain4j.model.openai.OpenAiChatModel;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +28,6 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/chat")
 @Slf4j
 public class ChatController {
-	@Resource
-	private OpenAiChatModel openAiChatModel;
-
 	@Resource
 	private ConsultantService consultantService;
 
