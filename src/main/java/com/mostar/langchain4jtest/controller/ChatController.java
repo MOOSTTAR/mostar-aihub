@@ -41,6 +41,7 @@ public class ChatController {
 	private RedisChatMemoryStore redisChatMemoryStore;
 
 	@GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@SuppressWarnings("null")
 	public SseEmitter chat(@RequestParam String memoryId, @RequestParam String message, HttpServletRequest request) {
 		log.info("Chat request - memoryId: {}, message: {}", memoryId, message);
 
