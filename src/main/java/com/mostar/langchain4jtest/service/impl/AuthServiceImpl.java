@@ -43,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
 	/**
 	 * 用户登录
 	 */
+	@SuppressWarnings("null")
 	public LoginResponse login(LoginRequest request) {
 		// 1. 验证用户名密码
 		User user = userService.getByUsername(request.getUsername());
