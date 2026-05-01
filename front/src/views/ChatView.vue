@@ -561,8 +561,17 @@ const handleLogout = async () => {
     ElMessage.warning('AI 正在回复中，请稍后再退出登录')
     return
   }
-  await authStore.logout()
-  router.push('/login')
+
+  const result = await ElMessageBox.confirm('是否确认退出登录？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+
+  if (result) {
+    await authStore.logout()
+    router.push('/login')
+  }
 }
 
 const sendMessage = async () => {
@@ -1138,8 +1147,10 @@ onUnmounted(() => {
           <button
             class="icon-btn sidebar-toggle-mobile"
             @click="sidebarCollapsed = !sidebarCollapsed"
+            :title="sidebarCollapsed ? '展开边栏' : '收起边栏'"
           >
             <svg
+              v-if="sidebarCollapsed"
               width="20"
               height="20"
               viewBox="0 0 24 24"
@@ -1147,9 +1158,24 @@ onUnmounted(() => {
               stroke="currentColor"
               stroke-width="2"
             >
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
+              <!-- 边栏收起：外框 + 分隔线 + 右箭头 -->
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <path d="M11 8l5 4-5 4V8z" fill="currentColor" stroke="none" />
+            </svg>
+            <svg
+              v-else
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <!-- 边栏展开：外框 + 分隔线 + 左箭头 -->
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <path d="M19 8l-5 4 5 4V8z" fill="currentColor" stroke="none" />
             </svg>
           </button>
           <button
@@ -1170,7 +1196,8 @@ onUnmounted(() => {
               stroke="currentColor"
               stroke-width="2"
             >
-              <polyline points="15 18 9 12 15 6" />
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </button>
           <div class="logo-pulse"></div>
@@ -2727,5 +2754,88 @@ body {
   .input-dock {
     padding: 12px;
   }
+}
+
+/* Custom Confirm Dialog Style */
+.el-message-box__wrapper {
+  backdrop-filter: blur(4px) !important;
+}
+
+.el-message-box {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.el-message-box__header {
+  padding: 20px 24px 12px !important;
+}
+
+.el-message-box__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.el-message-box__content {
+  padding: 12px 24px 24px !important;
+}
+
+.el-message-box__message {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.el-message-box__btns {
+  padding: 0 24px 20px !important;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end !important;
+}
+
+.el-message-box__cancel-btn {
+  padding: 8px 20px !important;
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  transition: all var(--duration-fast) var(--ease-smooth) !important;
+}
+
+.el-message-box__cancel-btn:hover {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+}
+
+/* 确认按钮 - 红色边框、透明填充、红色文本 */
+.el-message-box__confirm-btn {
+  padding: 8px 20px !important;
+  font-size: 14px !important;
+  color: #ef4444 !important;
+  background: transparent !important;
+  border: 1px solid #ef4444 !important;
+  border-radius: 8px !important;
+  transition: all var(--duration-fast) var(--ease-smooth) !important;
+}
+
+.el-message-box__confirm-btn:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 覆盖 Element Plus 默认 primary 按钮样式 */
+.el-button--primary.el-message-box__confirm-btn {
+  background-color: transparent !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.el-button--primary.el-message-box__confirm-btn:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
 }
 </style>

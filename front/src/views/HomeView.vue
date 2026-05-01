@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -46,8 +47,16 @@ const navigateTo = (route: string) => {
 }
 
 const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
+  const result = await ElMessageBox.confirm('是否确认退出登录？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+
+  if (result) {
+    await authStore.logout()
+    router.push('/login')
+  }
 }
 </script>
 
@@ -433,5 +442,88 @@ const handleLogout = async () => {
     height: 44px;
     border-radius: 12px;
   }
+}
+
+/* Custom Confirm Dialog Style */
+.el-message-box__wrapper {
+  backdrop-filter: blur(4px) !important;
+}
+
+.el-message-box {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.el-message-box__header {
+  padding: 20px 24px 12px !important;
+}
+
+.el-message-box__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.el-message-box__content {
+  padding: 12px 24px 24px !important;
+}
+
+.el-message-box__message {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.el-message-box__btns {
+  padding: 0 24px 20px !important;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end !important;
+}
+
+.el-message-box__cancel-btn {
+  padding: 8px 20px !important;
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  transition: all var(--duration-fast) var(--ease-smooth) !important;
+}
+
+.el-message-box__cancel-btn:hover {
+  background: var(--bg-subtle) !important;
+  border-color: var(--border) !important;
+}
+
+/* 确认按钮 - 红色边框、透明填充、红色文本 */
+.el-message-box__confirm-btn {
+  padding: 8px 20px !important;
+  font-size: 14px !important;
+  color: #ef4444 !important;
+  background: transparent !important;
+  border: 1px solid #ef4444 !important;
+  border-radius: 8px !important;
+  transition: all var(--duration-fast) var(--ease-smooth) !important;
+}
+
+.el-message-box__confirm-btn:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 覆盖 Element Plus 默认 primary 按钮样式 */
+.el-button--primary.el-message-box__confirm-btn {
+  background-color: transparent !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.el-button--primary.el-message-box__confirm-btn:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
 }
 </style>
