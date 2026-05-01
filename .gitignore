@@ -13,5 +13,8 @@ backend_full.log
 # Local config
 src/main/resources/application-prod.yml
 
+# Docs - Frontend analysis (not for production)
+docs/frontend-console-logs-analysis.md
+
 # Claude
 .claude/
