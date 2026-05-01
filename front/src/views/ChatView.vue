@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -51,47 +50,23 @@ interface Message {
   id: string
 }
 
-// 配置 marked 渲染器，给代码块添加复制按钮和行号
-const renderer = new marked.Renderer()
-renderer.code = ({ text, lang }: { text: string, lang?: string }) => {
-  const language = lang || 'text'
-  const encodedCode = encodeURIComponent(text)
+// 复制代码 - 通过事件委托处理
+const copyCode = async (codeId: string, buttonEl: HTMLElement) => {
+  const code = (window as any).__codeBlocks?.[codeId]
+  if (!code) return
 
-  // 生成带行号的 HTML
-  const lines = text.split('\n')
-  const lineNumbers = lines.map((_, index) => index + 1).join('\n')
-
-  return `
-<div class="code-block-wrapper">
-  <div class="code-header">
-    <span class="code-lang">${language}</span>
-    <button class="copy-code-btn" onclick="window.copyCode(decodeURIComponent('${encodedCode}'), this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-      </svg>
-      <span class="copy-text">复制</span>
-    </button>
-  </div>
-  <div class="code-content-wrapper">
-    <div class="code-line-numbers">${lineNumbers}</div>
-    <pre><code class="language-${language}">${text.replace(/"/g, '&quot;')}</code></pre>
-  </div>
-</div>`
-}
-
-marked.setOptions({ gfm: true, breaks: true, renderer })
-
-// 复制代码
-const copyCode = async (code: string, buttonEl: HTMLElement) => {
   try {
     await navigator.clipboard.writeText(code)
-    // 显示复制成功提示
-    const originalText = buttonEl.textContent
-    buttonEl.textContent = '已复制!'
+    const originalHTML = buttonEl.innerHTML
+    buttonEl.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <span class="copy-text">已复制!</span>
+    `
     buttonEl.classList.add('copied')
     setTimeout(() => {
-      buttonEl.textContent = originalText
+      buttonEl.innerHTML = originalHTML
       buttonEl.classList.remove('copied')
     }, 2000)
   } catch (err) {
@@ -99,19 +74,35 @@ const copyCode = async (code: string, buttonEl: HTMLElement) => {
   }
 }
 
-// 使 copyCode 在全局可用
-;(window as any).copyCode = copyCode
+// 在消息容器上委托处理复制按钮点击
+const handleCopyButtonClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  const copyBtn = target.closest('.copy-code-btn') as HTMLElement
+  if (copyBtn) {
+    const codeId = copyBtn.getAttribute('data-code-id')
+    if (codeId) {
+      copyCode(codeId, copyBtn)
+    }
+  }
+}
+
 
 const renderContent = (content: string) => {
   if (!content) return ''
-  const rawHtml = marked.parse(content) as string
-  // 使用 DOMPurify 过滤恶意脚本和危险 HTML 标签
-  return DOMPurify.sanitize(rawHtml, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'i', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span'],
-    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class'],
+
+  // ========== 调试日志：查看 AI 原始输出内容 ==========
+  console.log('========== AI 原始输出内容 ==========')
+  console.log(content)
+  console.log('========================================')
+
+  // 直接使用 AI 返回的 HTML，只用 DOMPurify 过滤 XSS
+  const sanitized = DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'i', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'hr'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class', 'style', 'border', 'cellspacing', 'cellpadding'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea'],
     FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur']
   })
+  return sanitized
 }
 
 const messages = ref<Message[]>([])
@@ -227,9 +218,6 @@ const isAllSelected = computed(() => {
 })
 
 const batchDeleteSessions = async () => {
-  console.log('批量删除开始，选中的会话数:', selectedSessions.value.size)
-  console.log('选中的会话 IDs:', Array.from(selectedSessions.value))
-
   if (selectedSessions.value.size === 0) {
     ElMessage.warning('请选择要删除的会话')
     return
@@ -242,9 +230,7 @@ const batchDeleteSessions = async () => {
       type: 'warning'
     })
 
-    console.log('用户确认删除')
     const success = await sessionStore.deleteSessions(Array.from(selectedSessions.value))
-    console.log('删除结果:', success)
     if (success) {
       ElMessage.success('批量删除成功')
       // 如果当前会话被删除了，新建一个
@@ -254,8 +240,7 @@ const batchDeleteSessions = async () => {
       isBatchDeleteMode.value = false
       selectedSessions.value.clear()
     }
-  } catch (e) {
-    console.log('用户取消删除或发生错误:', e)
+  } catch {
     // 用户取消
   }
 }
@@ -345,15 +330,14 @@ const sendMessage = async () => {
       const chunk = decoder.decode(value, { stream: true })
       buffer += chunk
 
-      // 处理缓冲区中的完整行（以\n结尾的）
-      let lineEndIndex
-      while ((lineEndIndex = buffer.indexOf('\n')) !== -1) {
-        const line = buffer.slice(0, lineEndIndex).trim()
-        buffer = buffer.slice(lineEndIndex + 1)
+      // 处理 SSE 格式：每行 data:xxx
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() || ''  // 保留最后不完整的一行
 
+      for (const line of lines) {
         if (line.startsWith('data:')) {
-          const data = line.slice(5).trim()
-          if (data && data !== '[DONE]') {
+          const data = line.substring(5)
+          if (data && data.trim() !== '[DONE]') {
             fullContent += data
           }
         }
@@ -374,6 +358,12 @@ const sendMessage = async () => {
         fullContent += data
       }
     }
+
+    // ========== 调试日志：查看后端返回的原始内容 ==========
+    console.log('========== AI 回复原始内容 ==========')
+    console.log(fullContent)
+    console.log('========== 原始内容结束 ==========')
+    // ===================================================
 
     // 刷新会话列表（如果是新会话）
     await sessionStore.fetchSessions()
@@ -518,10 +508,13 @@ onMounted(() => {
   initTheme()
   sessionStore.fetchSessions()
   document.addEventListener('click', handleOutsideClick)
+  // 绑定复制按钮点击事件委托到消息容器
+  chatContainer.value?.addEventListener('click', handleCopyButtonClick)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick)
+  chatContainer.value?.removeEventListener('click', handleCopyButtonClick)
 })
 </script>
 
@@ -637,6 +630,14 @@ onUnmounted(() => {
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
+
+          <div class="username-display">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>{{ authStore.userInfo?.username || '用户' }}</span>
+          </div>
 
           <button class="icon-btn logout-btn" @click="handleLogout" title="退出登录">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1165,6 +1166,24 @@ html, body {
 .action-cell {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.username-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.username-display svg {
+  color: var(--text-secondary);
 }
 
 .icon-btn {
@@ -1384,6 +1403,24 @@ html, body {
   line-height: 1.65;
   word-break: break-word;
   transition: all var(--duration-fast) var(--ease-smooth);
+}
+
+.message-bubble strong {
+  font-weight: 900 !important;
+}
+
+.message-bubble h3 {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  margin: 24px 0 14px;
+  color: var(--text-primary);
+}
+
+.message-bubble h4 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin: 20px 0 12px;
+  color: var(--text-primary);
 }
 
 .message-bento.user .message-bubble {
@@ -1783,6 +1820,15 @@ html, body {
 .message-bubble :deep(ol) {
   margin: 12px 0;
   padding-left: 28px;
+  list-style-type: cjk-decimal;
+}
+
+.message-bubble :deep(ul) {
+  list-style-type: disc;
+}
+
+.message-bubble :deep(ul ul) {
+  list-style-type: disc;
 }
 
 .message-bubble :deep(li) {
@@ -1815,20 +1861,6 @@ html, body {
   letter-spacing: -0.02em;
 }
 
-.message-bubble :deep(h3) {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 20px 0 12px;
-  color: var(--text-primary);
-}
-
-.message-bubble :deep(h4) {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 18px 0 10px;
-  color: var(--text-primary);
-}
-
 /* Blockquote */
 .message-bubble :deep(blockquote) {
   margin: 16px 0;
@@ -1845,28 +1877,62 @@ html, body {
 }
 
 /* Table */
-.message-bubble :deep(table) {
-  border-collapse: collapse;
+.message-bubble table {
+  border-collapse: collapse !important;
   width: 100%;
   margin: 16px 0;
   font-size: 14px;
 }
 
-.message-bubble :deep(th),
-.message-bubble :deep(td) {
-  border: 1px solid var(--border);
+.message-bubble th,
+.message-bubble td {
+  border: 1px solid var(--border) !important;
   padding: 12px 16px;
   text-align: left;
 }
 
-.message-bubble :deep(th) {
+.message-bubble th {
   background: var(--bg-subtle);
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.message-bubble :deep(tr:nth-child(even)) {
+.message-bubble tr:nth-child(even) {
   background: var(--bg-subtle);
+}
+
+/* Code blocks */
+.message-bubble pre {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+  white-space: pre-wrap !important;  /* 保留换行符 */
+  word-break: break-all;
+}
+
+.message-bubble code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap !important;  /* 保留换行符 */
+}
+
+.message-bubble pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Inline code */
+.message-bubble p code {
+  background: var(--bg-subtle);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 /* Horizontal Rule */
@@ -1897,7 +1963,7 @@ html, body {
 
 /* Bold and Italic */
 .message-bubble :deep(strong) {
-  font-weight: 700;
+  font-weight: 900 !important;
   color: var(--text-primary);
 }
 

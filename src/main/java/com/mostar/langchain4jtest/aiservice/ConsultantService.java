@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 @AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "openAiChatModel", streamingChatModel = "openAiStreamingChatModel", chatMemoryProvider = "chatMemoryProvider")
 public interface ConsultantService {
 
-	@SystemMessage(fromResource = "prompt/systemMessage.txt")
+	@SystemMessage(fromResource = "prompt/systemMessage.md")
 	public Flux<String> chat(@MemoryId String memoryId, @UserMessage String message);
 
 }
