@@ -34,7 +34,7 @@ public class JwtUtil {
 	 * @return JWT Token 字符串
 	 */
 	public String generateToken(Long userId, String username, boolean rememberMe, long expiration) {
-		Date now = new Date();
+		// Date now = new Date(); // 未使用，直接计算时间戳
 		// Date expireDate = new Date(now.getTime() + expiration); // 未使用，过期时间直接计算放入 payload
 
 		Map<String, Object> payload = new HashMap<>();
