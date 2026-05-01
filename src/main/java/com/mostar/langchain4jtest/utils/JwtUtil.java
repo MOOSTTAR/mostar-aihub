@@ -35,7 +35,7 @@ public class JwtUtil {
 	 */
 	public String generateToken(Long userId, String username, boolean rememberMe, long expiration) {
 		Date now = new Date();
-		Date expireDate = new Date(now.getTime() + expiration);
+		// Date expireDate = new Date(now.getTime() + expiration); // 未使用，过期时间直接计算放入 payload
 
 		Map<String, Object> payload = new HashMap<>();
 		payload.put("userId", userId);
