@@ -26,6 +26,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
 	}
 
 	@Override
+	@SuppressWarnings("null")
 	public void updateMessages(Object memoryId, List<ChatMessage> list) {
 		String key = CONTENT_PREFIX + memoryId.toString();
 		String json = ChatMessageSerializer.messagesToJson(list);
