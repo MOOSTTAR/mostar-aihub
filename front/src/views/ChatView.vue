@@ -2450,7 +2450,7 @@ body {
 /* 语言标签 */
 .message-bubble .code-lang-badge {
   position: absolute;
-  top: 10px;
+  top: 9px;
   left: 14px;
   font-size: 11px;
   font-weight: 600;
@@ -2469,7 +2469,7 @@ body {
 /* 复制按钮样式 - 无边框无背景 */
 .message-bubble .copy-code-btn {
   position: absolute;
-  top: 8px;
+  top: 9px;
   right: 8px;
   display: flex;
   align-items: center;
