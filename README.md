@@ -1,41 +1,77 @@
 # MOstAr AI Hub
 
-基于 Spring Boot + Vue3 的智能聊天应用，集成 LangChain4j AI 框架。
+基于 Spring Boot + Vue3 的智能聊天应用，集成 LangChain4j AI 框架与 DeepSeek 大模型。
 
 ## ✨ 功能特性
 
-- 🔐 **JWT 认证** - 安全的用户登录和 Token 管理
+### 核心功能
+
 - 💬 **AI 对话** - 流式 SSE 响应，实时打字机效果
-- 📋 **会话管理** - 历史会话列表、标题自动生成、一键删除
+- 🧠 **上下文记忆** - 基于 Redis 的会话内容存储，支持多轮对话
+- 📋 **会话管理** - 历史会话列表、标题自动生成、批量删除
 - 🧹 **一键清空** - `/clear` 指令清空对话和 AI 记忆
-- ⏱️ **思考计时** - 显示 AI 已思考时长
-- 🎮 **快捷指令** - 点击指令按钮快速输入命令
-- 🎨 **精美 UI** - Soft UI + Minimalist 设计风格
-- 🌙 **主题切换** - 亮色/暗色模式
-- 📱 **响应式** - 适配移动端
-- 📝 **Markdown** - Typora 风格排版
-- 🧾 **代码高亮** - 支持语法高亮、行号显示、一键复制
-- 🔢 **公式支持** - MathJax 数学公式渲染
+
+### 安全认证
+
+- 🔐 **JWT 认证** - 安全的用户登录和 Token 管理
+- 🔄 **自动续期** - Token 过期自动续期，无感知体验
+- 🛡️ **XSS 防护** - 输入输出双重过滤，防止脚本注入
+
+### 用户体验
+
+- ⏱️ **思考计时** - 显示 AI 已思考时长，3 个跳动圆点动画
+- 🎮 **快捷指令** - `/` 唤出指令菜单，快速输入命令
+- 🎨 **精美 UI** - Soft UI + Minimalist 设计风格，Bento Grid 布局
+- 🌙 **主题切换** - 亮色/暗色模式，平滑过渡
+- 📱 **响应式** - 适配移动端，侧边栏可折叠
+
+### 内容渲染
+
+- 📝 **Markdown** - Typora 风格排版，支持表格、引用、列表
+- 🧾 **代码高亮** - 语法高亮、语言标签、一键复制
+- 🔢 **公式支持** - MathJax 数学公式渲染（行内/块级）
+- 🔗 **链接预览** - 自动识别 URL
+
+### 数据存储
+
 - 💾 **Redis 存储** - 高效的会话和 Token 管理
+- 🗄️ **MySQL 持久化** - 用户数据关系型存储
 
 ## 🛠️ 技术栈
 
 ### 后端
-- Java 21
-- Spring Boot 3.4.4
-- Spring Security + JWT
-- LangChain4j (DeepSeek AI)
-- MyBatis-Plus
-- Redis
-- MySQL
+
+| 技术 | 版本 | 说明 |
+| :--- | :--- | :--- |
+| Java | 21 | 语言基础 |
+| Spring Boot | 3.4.4 | Web 框架 |
+| Spring Security | 6.x | 安全认证 |
+| LangChain4j | latest | AI 应用框架 |
+| MyBatis-Plus | latest | ORM 框架 |
+| Redis | 7.x | 缓存/会话存储 |
+| MySQL | 8.0+ | 关系数据库 |
+| Hutool | latest | 工具库 |
+| Lombok | latest | 代码简化 |
 
 ### 前端
-- Vue 3 + TypeScript
-- Pinia 状态管理
-- Vue Router
-- Axios
-- Element Plus
-- Vite
+
+| 技术 | 版本 | 说明 |
+| :--- | :--- | :--- |
+| Vue | 3.x | 渐进式框架 |
+| TypeScript | 5.x | 类型系统 |
+| Pinia | 2.x | 状态管理 |
+| Vue Router | 4.x | 路由管理 |
+| Axios | 1.x | HTTP 客户端 |
+| Element Plus | latest | UI 组件库 |
+| Vite | 7.x | 构建工具 |
+| DOMPurify | latest | XSS 防护 |
+| MathJax | 3.x | 数学公式渲染 |
+
+### AI 模型
+
+| 模型 | 提供商 | 说明 |
+| :--- | :--- | :--- |
+| DeepSeek | 深度求索 | 主聊天模型 |
 
 ## 📦 项目结构
 
@@ -113,6 +149,7 @@ mvn spring-boot:run
 ```
 
 **默认测试账号：**
+
 - 用户名：`test`
 - 密码：`test123456`
 
@@ -159,7 +196,9 @@ langchain4j:
 ## 📸 截图
 
 ### 登录页面
+
 ### 对话主界面
+
 ### 历史会话列表
 
 ## 🔒 安全特性
@@ -168,6 +207,41 @@ langchain4j:
 - Token 自动续期机制
 - 密码 BCrypt 加密存储
 - Spring Security 权限控制
+- XSS 过滤防护
+
+## 📖 API 接口
+
+### 认证接口
+
+| 接口 | 方法 | 说明 |
+| :--- | :--- | :--- |
+| /auth/login | POST | 用户登录 |
+| /auth/logout | POST | 用户登出 |
+| /auth/renew | POST | 续期 Token |
+| /auth/register | POST | 用户注册 |
+| /auth/test | GET | 测试 Token 有效性 |
+
+### 聊天接口
+
+| 接口 | 方法 | 说明 |
+| :--- | :--- | :--- |
+| /chat | GET | SSE 流式聊天 |
+| /chat/clear | POST | 清空对话记忆 |
+| /chat/sessions | GET | 获取会话列表 |
+| /chat/sessions/:id | DELETE | 删除会话 |
+| /chat/sessions/batch-delete | POST | 批量删除会话 |
+| /chat/history/:memoryId | GET | 获取历史消息 |
+
+## 🧪 测试
+
+```bash
+# 后端测试
+mvn test
+
+# 前端测试
+cd front
+npm run test
+```
 
 ## 📄 License
 
