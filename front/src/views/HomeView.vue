@@ -407,6 +407,17 @@ const handleLogout = async () => {
   background: #4A4A4A;
 }
 
+/* 暗色模式下主题切换按钮滑块为浅白色 */
+[data-theme="dark"] .theme-toggle {
+  color: #E8E8E8;
+  border-color: #3A3A3A;
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+  color: #E8E8E8;
+  border-color: #E8E8E8;
+}
+
 /* Dark Mode Support */
 [data-theme="dark"] .lobby {
   --bg-canvas: #0F0F0F;
