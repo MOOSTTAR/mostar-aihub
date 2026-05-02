@@ -198,6 +198,12 @@ langchain4j:
 
 ## 📸 截图
 
+### 首页
+
+![首页](./assets/home-page.png)
+
+### 对话主界面
+
 ![对话主界面](./assets/screenshot.png)
 
 ## 🔒 安全特性
