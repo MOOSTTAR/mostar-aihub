@@ -110,12 +110,6 @@ public class ChatController {
 		// 2. 清空 Redis 中的 AI 记忆（上下文）
 		redisChatMemoryStore.deleteMessages(memoryId);
 
-		// 3. 更新会话标题为"新对话"
-		Long userId = getUserIdFromRequest(request);
-		if (userId != null) {
-			chatSessionService.updateSessionTitle(memoryId, "新对话", userId);
-		}
-
 		return Result.ok("已清空对话记忆，接下来我将没有之前的上下文记忆哦～");
 	}
 
