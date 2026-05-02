@@ -8,7 +8,7 @@
 
 - 💬 **AI 对话** - 流式 SSE 响应，实时打字机效果
 - 🧠 **上下文记忆** - 基于 Redis 的会话内容存储，支持多轮对话
-- 📋 **会话管理** - 历史会话列表、标题自动生成、批量删除
+- 📋 **会话管理** - 历史会话列表、标题自动生成、批量删除、置顶/取消置顶、重命名、时间分组标签（置顶/今天/7 天内/其它）
 - 🧹 **/clear 指令** - 清空 AI 记忆（保留对话记录）
 
 ### 安全认证
@@ -232,6 +232,8 @@ langchain4j:
 | /chat/clear | POST | 清空对话记忆 |
 | /chat/sessions | GET | 获取会话列表 |
 | /chat/sessions/:id | DELETE | 删除会话 |
+| /chat/sessions/:id/pin | POST | 置顶/取消置顶会话 |
+| /chat/sessions/:id/title | PUT | 重命名会话 |
 | /chat/sessions/batch-delete | POST | 批量删除会话 |
 | /chat/history/:memoryId | GET | 获取历史消息 |
 
