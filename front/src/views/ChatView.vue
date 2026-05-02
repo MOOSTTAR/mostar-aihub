@@ -884,18 +884,78 @@ const insertCommand = (cmd: string) => {
 
 // 三个点菜单相关状态
 const menuVisible = ref<string | null>(null)  // 当前显示菜单的会话 memoryId
+const menuPosition = ref<{ top: number, left: number } | null>(null)  // 菜单位置
 const editingSessionId = ref<string | null>(null)  // 正在编辑的会话 ID
 const editingTitle = ref("")  // 编辑中的标题
+
+// 分组展开/收起状态
+const expandedGroups = ref({
+  pinned: true,
+  today: true,
+  week: true,
+  other: true
+})
+
+// 切换分组展开/收起
+const toggleGroup = (group: keyof typeof expandedGroups.value) => {
+  expandedGroups.value[group] = !expandedGroups.value[group]
+}
+
+// 按时间分组 computed
+const groupedSessions = computed(() => {
+  const groups: {
+    pinned: ChatSession[]
+    today: ChatSession[]
+    week: ChatSession[]
+    other: ChatSession[]
+  } = {
+    pinned: [],
+    today: [],
+    week: [],
+    other: []
+  }
+
+  const now = Date.now()
+  const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000
+
+  sessionStore.sessions.forEach(session => {
+    if (session.isPinned) {
+      groups.pinned.push(session)
+    } else if (session.createTime >= todayStart) {
+      groups.today.push(session)
+    } else if (session.createTime >= weekAgo) {
+      groups.week.push(session)
+    } else {
+      groups.other.push(session)
+    }
+  })
+
+  return groups
+})
 
 // 打开/关闭三个点菜单
 const toggleMenu = (memoryId: string, event: Event) => {
   event.stopPropagation()
-  menuVisible.value = menuVisible.value === memoryId ? null : memoryId
+  if (menuVisible.value === memoryId) {
+    menuVisible.value = null
+    menuPosition.value = null
+  } else {
+    menuVisible.value = memoryId
+    // 计算菜单位置 - 在按钮右侧显示
+    const target = event.currentTarget as HTMLElement
+    const rect = target.getBoundingClientRect()
+    menuPosition.value = {
+      top: rect.top,
+      left: rect.right + 4
+    }
+  }
 }
 
 // 点击外部关闭菜单
 const closeMenu = () => {
   menuVisible.value = null
+  menuPosition.value = null
 }
 
 // 处理置顶/取消置顶
@@ -968,6 +1028,7 @@ onMounted(async () => {
   initTheme()
   sessionStore.fetchSessions()
   document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('scroll', closeMenu, true)  // 滚动时关闭菜单
   bindCopyButtonEvent()
 })
 
@@ -1001,6 +1062,7 @@ watch(sessionMemoryId, (newMemoryId, oldMemoryId) => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('scroll', closeMenu, true)
   chatContainer.value?.removeEventListener('click', handleCopyButtonClick)
 })
 </script>
@@ -1131,136 +1193,597 @@ onUnmounted(() => {
           暂无历史会话
         </div>
         <div v-else class="session-list">
-          <div
-            v-for="session in sessionStore.sessions"
-            :key="session.memoryId"
-            class="session-item"
-            :class="{
-              active: session.memoryId === sessionMemoryId,
-              selected: selectedSessions.has(session.memoryId),
-              disabled: streamingMemoryId !== null,
-            }"
-            :style="{
-              'pointer-events':
-                streamingMemoryId !== null && session.memoryId !== sessionMemoryId
-                  ? 'none'
-                  : 'auto',
-              opacity:
-                streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
-            }"
-            @click="switchSession(session.memoryId)"
-          >
-            <div
-              v-if="isBatchDeleteMode"
-              class="session-checkbox"
-              @click="toggleSessionSelection(session.memoryId, $event)"
-            >
-              <svg
-                v-if="selectedSessions.has(session.memoryId)"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
-                <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
-              </svg>
-              <svg
-                v-else
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-              </svg>
+          <!-- 置顶分组 -->
+          <div class="session-group" v-if="groupedSessions.pinned.length > 0">
+            <div class="group-header" @click="toggleGroup('pinned')">
+              <span class="group-label">置顶</span>
+              <span class="group-toggle" :class="{ collapsed: !expandedGroups.pinned }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
             </div>
-            <div v-else class="session-icon">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+            <div class="group-content" v-show="expandedGroups.pinned">
+              <div
+                v-for="session in groupedSessions.pinned"
+                :key="session.memoryId"
+                class="session-item"
+                :class="{
+                  active: session.memoryId === sessionMemoryId,
+                  selected: selectedSessions.has(session.memoryId),
+                  disabled: streamingMemoryId !== null,
+                }"
+                :style="{
+                  'pointer-events':
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId
+                      ? 'none'
+                      : 'auto',
+                  opacity:
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
+                }"
+                @click="switchSession(session.memoryId)"
               >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <!-- 会话标题 - 支持编辑模式 -->
-            <template v-if="editingSessionId === session.memoryId">
-              <input
-                v-model="editingTitle"
-                class="session-title-input"
-                @keydown="handleRenameKeydown"
-                @blur="confirmRename"
-                @click.stop
-                autofocus
-              />
-            </template>
-            <template v-else>
-              <div class="session-title">
-                <!-- 置顶图标 -->
-                <svg
-                  v-if="session.isPinned"
-                  class="pin-icon"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  style="margin-right: 4px; flex-shrink: 0;"
+                <div
+                  v-if="isBatchDeleteMode"
+                  class="session-checkbox"
+                  @click="toggleSessionSelection(session.memoryId, $event)"
                 >
-                  <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
-                </svg>
-                {{ session.title }}
+                  <svg
+                    v-if="selectedSessions.has(session.memoryId)"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
+                    <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
+                  </svg>
+                  <svg
+                    v-else
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                  </svg>
+                </div>
+                <div v-else class="session-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <!-- 会话标题 - 支持编辑模式 -->
+                <template v-if="editingSessionId === session.memoryId">
+                  <input
+                    v-model="editingTitle"
+                    class="session-title-input"
+                    @keydown="handleRenameKeydown"
+                    @blur="confirmRename"
+                    @click.stop
+                    autofocus
+                  />
+                </template>
+                <template v-else>
+                  <div class="session-title">
+                    <!-- 置顶图标 -->
+                    <svg
+                      v-if="session.isPinned"
+                      class="pin-icon"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      style="margin-right: 4px; flex-shrink: 0;"
+                    >
+                      <!-- 圆形钉帽 -->
+                      <circle cx="12" cy="8" r="4"/>
+                      <!-- 尖锐三角形钉针 -->
+                      <path d="M12 12l-3 10h6L12 12z"/>
+                    </svg>
+                    {{ session.title }}
+                  </div>
+                </template>
+                <!-- 三个点菜单按钮（非批量模式下显示） -->
+                <div
+                  v-if="!isBatchDeleteMode"
+                  class="menu-btn"
+                  @click="toggleMenu(session.memoryId, $event)"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle cx="5" cy="12" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="19" cy="12" r="2"/>
+                  </svg>
+                </div>
+                <!-- 三个点弹出菜单 -->
+                <div
+                  v-if="menuVisible === session.memoryId"
+                  class="session-menu"
+                  :style="menuPosition ? { top: menuPosition.top + 'px', left: menuPosition.left + 'px' } : {}"
+                  @click.stop
+                >
+                  <div class="menu-item" @click="handleTogglePin(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                    </svg>
+                    <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+                  </div>
+                  <div class="menu-item" @click="handleRename(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    <span>重命名</span>
+                  </div>
+                  <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>删除</span>
+                  </div>
+                </div>
               </div>
-            </template>
-            <!-- 三个点菜单按钮（非批量模式下显示） -->
-            <div
-              v-if="!isBatchDeleteMode"
-              class="menu-btn"
-              @click="toggleMenu(session.memoryId, $event)"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <circle cx="5" cy="12" r="2"/>
-                <circle cx="12" cy="12" r="2"/>
-                <circle cx="19" cy="12" r="2"/>
-              </svg>
             </div>
-            <!-- 三个点弹出菜单 -->
-            <div
-              v-if="menuVisible === session.memoryId"
-              class="session-menu"
-              @click.stop
-            >
-              <div class="menu-item" @click="handleTogglePin(session, $event)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+          </div>
+
+          <!-- 今天分组 -->
+          <div class="session-group" v-if="groupedSessions.today.length > 0">
+            <div class="group-header" @click="toggleGroup('today')">
+              <span class="group-label">今天</span>
+              <span class="group-toggle" :class="{ collapsed: !expandedGroups.today }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
                 </svg>
-                <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+              </span>
+            </div>
+            <div class="group-content" v-show="expandedGroups.today">
+              <div
+                v-for="session in groupedSessions.today"
+                :key="session.memoryId"
+                class="session-item"
+                :class="{
+                  active: session.memoryId === sessionMemoryId,
+                  selected: selectedSessions.has(session.memoryId),
+                  disabled: streamingMemoryId !== null,
+                }"
+                :style="{
+                  'pointer-events':
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId
+                      ? 'none'
+                      : 'auto',
+                  opacity:
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
+                }"
+                @click="switchSession(session.memoryId)"
+              >
+                <div
+                  v-if="isBatchDeleteMode"
+                  class="session-checkbox"
+                  @click="toggleSessionSelection(session.memoryId, $event)"
+                >
+                  <svg
+                    v-if="selectedSessions.has(session.memoryId)"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
+                    <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
+                  </svg>
+                  <svg
+                    v-else
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                  </svg>
+                </div>
+                <div v-else class="session-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <!-- 会话标题 - 支持编辑模式 -->
+                <template v-if="editingSessionId === session.memoryId">
+                  <input
+                    v-model="editingTitle"
+                    class="session-title-input"
+                    @keydown="handleRenameKeydown"
+                    @blur="confirmRename"
+                    @click.stop
+                    autofocus
+                  />
+                </template>
+                <template v-else>
+                  <div class="session-title">
+                    <svg
+                      v-if="session.isPinned"
+                      class="pin-icon"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      style="margin-right: 4px; flex-shrink: 0;"
+                    >
+                      <circle cx="12" cy="8" r="4"/>
+                      <path d="M12 12l-3 10h6L12 12z"/>
+                    </svg>
+                    {{ session.title }}
+                  </div>
+                </template>
+                <!-- 三个点菜单按钮 -->
+                <div
+                  v-if="!isBatchDeleteMode"
+                  class="menu-btn"
+                  @click="toggleMenu(session.memoryId, $event)"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle cx="5" cy="12" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="19" cy="12" r="2"/>
+                  </svg>
+                </div>
+                <!-- 三个点弹出菜单 -->
+                <div
+                  v-if="menuVisible === session.memoryId"
+                  class="session-menu"
+                  :style="menuPosition ? { top: menuPosition.top + 'px', left: menuPosition.left + 'px' } : {}"
+                  @click.stop
+                >
+                  <div class="menu-item" @click="handleTogglePin(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                    </svg>
+                    <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+                  </div>
+                  <div class="menu-item" @click="handleRename(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    <span>重命名</span>
+                  </div>
+                  <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>删除</span>
+                  </div>
+                </div>
               </div>
-              <div class="menu-item" @click="handleRename(session, $event)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </div>
+          </div>
+
+          <!-- 7 天内分组 -->
+          <div class="session-group" v-if="groupedSessions.week.length > 0">
+            <div class="group-header" @click="toggleGroup('week')">
+              <span class="group-label">7 天内</span>
+              <span class="group-toggle" :class="{ collapsed: !expandedGroups.week }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
                 </svg>
-                <span>重命名</span>
+              </span>
+            </div>
+            <div class="group-content" v-show="expandedGroups.week">
+              <div
+                v-for="session in groupedSessions.week"
+                :key="session.memoryId"
+                class="session-item"
+                :class="{
+                  active: session.memoryId === sessionMemoryId,
+                  selected: selectedSessions.has(session.memoryId),
+                  disabled: streamingMemoryId !== null,
+                }"
+                :style="{
+                  'pointer-events':
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId
+                      ? 'none'
+                      : 'auto',
+                  opacity:
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
+                }"
+                @click="switchSession(session.memoryId)"
+              >
+                <div
+                  v-if="isBatchDeleteMode"
+                  class="session-checkbox"
+                  @click="toggleSessionSelection(session.memoryId, $event)"
+                >
+                  <svg
+                    v-if="selectedSessions.has(session.memoryId)"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
+                    <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
+                  </svg>
+                  <svg
+                    v-else
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                  </svg>
+                </div>
+                <div v-else class="session-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <!-- 会话标题 - 支持编辑模式 -->
+                <template v-if="editingSessionId === session.memoryId">
+                  <input
+                    v-model="editingTitle"
+                    class="session-title-input"
+                    @keydown="handleRenameKeydown"
+                    @blur="confirmRename"
+                    @click.stop
+                    autofocus
+                  />
+                </template>
+                <template v-else>
+                  <div class="session-title">
+                    <svg
+                      v-if="session.isPinned"
+                      class="pin-icon"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      style="margin-right: 4px; flex-shrink: 0;"
+                    >
+                      <circle cx="12" cy="8" r="4"/>
+                      <path d="M12 12l-3 10h6L12 12z"/>
+                    </svg>
+                    {{ session.title }}
+                  </div>
+                </template>
+                <!-- 三个点菜单按钮 -->
+                <div
+                  v-if="!isBatchDeleteMode"
+                  class="menu-btn"
+                  @click="toggleMenu(session.memoryId, $event)"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle cx="5" cy="12" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="19" cy="12" r="2"/>
+                  </svg>
+                </div>
+                <!-- 三个点弹出菜单 -->
+                <div
+                  v-if="menuVisible === session.memoryId"
+                  class="session-menu"
+                  :style="menuPosition ? { top: menuPosition.top + 'px', left: menuPosition.left + 'px' } : {}"
+                  @click.stop
+                >
+                  <div class="menu-item" @click="handleTogglePin(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                    </svg>
+                    <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+                  </div>
+                  <div class="menu-item" @click="handleRename(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    <span>重命名</span>
+                  </div>
+                  <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>删除</span>
+                  </div>
+                </div>
               </div>
-              <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </div>
+          </div>
+
+          <!-- 其它分组 -->
+          <div class="session-group" v-if="groupedSessions.other.length > 0">
+            <div class="group-header" @click="toggleGroup('other')">
+              <span class="group-label">其它</span>
+              <span class="group-toggle" :class="{ collapsed: !expandedGroups.other }">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
                 </svg>
-                <span>删除</span>
+              </span>
+            </div>
+            <div class="group-content" v-show="expandedGroups.other">
+              <div
+                v-for="session in groupedSessions.other"
+                :key="session.memoryId"
+                class="session-item"
+                :class="{
+                  active: session.memoryId === sessionMemoryId,
+                  selected: selectedSessions.has(session.memoryId),
+                  disabled: streamingMemoryId !== null,
+                }"
+                :style="{
+                  'pointer-events':
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId
+                      ? 'none'
+                      : 'auto',
+                  opacity:
+                    streamingMemoryId !== null && session.memoryId !== sessionMemoryId ? '0.5' : '1',
+                }"
+                @click="switchSession(session.memoryId)"
+              >
+                <div
+                  v-if="isBatchDeleteMode"
+                  class="session-checkbox"
+                  @click="toggleSessionSelection(session.memoryId, $event)"
+                >
+                  <svg
+                    v-if="selectedSessions.has(session.memoryId)"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" fill="var(--accent)" />
+                    <polyline points="9 12 11 14 15 10" stroke="white" stroke-width="2.5" />
+                  </svg>
+                  <svg
+                    v-else
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                  </svg>
+                </div>
+                <div v-else class="session-icon">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <!-- 会话标题 - 支持编辑模式 -->
+                <template v-if="editingSessionId === session.memoryId">
+                  <input
+                    v-model="editingTitle"
+                    class="session-title-input"
+                    @keydown="handleRenameKeydown"
+                    @blur="confirmRename"
+                    @click.stop
+                    autofocus
+                  />
+                </template>
+                <template v-else>
+                  <div class="session-title">
+                    <svg
+                      v-if="session.isPinned"
+                      class="pin-icon"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      style="margin-right: 4px; flex-shrink: 0;"
+                    >
+                      <circle cx="12" cy="8" r="4"/>
+                      <path d="M12 12l-3 10h6L12 12z"/>
+                    </svg>
+                    {{ session.title }}
+                  </div>
+                </template>
+                <!-- 三个点菜单按钮 -->
+                <div
+                  v-if="!isBatchDeleteMode"
+                  class="menu-btn"
+                  @click="toggleMenu(session.memoryId, $event)"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle cx="5" cy="12" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="19" cy="12" r="2"/>
+                  </svg>
+                </div>
+                <!-- 三个点弹出菜单 -->
+                <div
+                  v-if="menuVisible === session.memoryId"
+                  class="session-menu"
+                  :style="menuPosition ? { top: menuPosition.top + 'px', left: menuPosition.left + 'px' } : {}"
+                  @click.stop
+                >
+                  <div class="menu-item" @click="handleTogglePin(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                    </svg>
+                    <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+                  </div>
+                  <div class="menu-item" @click="handleRename(session, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    <span>重命名</span>
+                  </div>
+                  <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span>删除</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1716,6 +2239,55 @@ onUnmounted(() => {
   gap: 4px;
 }
 
+/* 分组样式 */
+.session-group {
+  margin-bottom: 12px;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.group-header:hover {
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+}
+
+.group-label {
+  flex: 1;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: var(--text-tertiary);
+}
+
+.group-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+}
+
 .session-item {
   display: flex;
   align-items: center;
@@ -1798,9 +2370,7 @@ onUnmounted(() => {
 
 /* 弹出菜单 */
 .session-menu {
-  position: absolute;
-  right: 8px;
-  top: calc(100% + 4px);
+  position: fixed;
   min-width: 120px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
