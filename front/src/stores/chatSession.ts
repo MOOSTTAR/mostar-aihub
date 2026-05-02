@@ -6,6 +6,8 @@ export interface ChatSession {
   memoryId: string
   title: string
   createTime: number
+  isPinned?: boolean      // 新增：是否置顶
+  pinnedAt?: number       // 新增：置顶时间
 }
 
 export interface ChatMessage {
@@ -71,6 +73,45 @@ export const useChatSessionStore = defineStore('chatSession', () => {
     }
   }
 
+  // 新增：置顶/取消置顶会话
+  const togglePinSession = async (memoryId: string, isPinned: boolean) => {
+    try {
+      await request.post(`/chat/sessions/${memoryId}/pin`, { isPinned })
+      // 更新本地状态
+      const session = sessions.value.find(s => s.memoryId === memoryId)
+      if (session) {
+        session.isPinned = isPinned
+        if (isPinned) {
+          session.pinnedAt = Date.now()
+        } else {
+          session.pinnedAt = undefined
+        }
+      }
+      // 重新获取列表以确保排序正确
+      await fetchSessions()
+      return true
+    } catch (error) {
+      console.error('更新置顶状态失败:', error)
+      return false
+    }
+  }
+
+  // 新增：重命名会话
+  const renameSession = async (memoryId: string, newTitle: string) => {
+    try {
+      await request.put(`/chat/sessions/${memoryId}/title`, { title: newTitle })
+      // 更新本地状态
+      const session = sessions.value.find(s => s.memoryId === memoryId)
+      if (session) {
+        session.title = newTitle
+      }
+      return true
+    } catch (error) {
+      console.error('重命名失败:', error)
+      return false
+    }
+  }
+
   return {
     sessions,
     loading,
@@ -78,6 +119,8 @@ export const useChatSessionStore = defineStore('chatSession', () => {
     deleteSession,
     deleteSessions,
     addSession,
-    loadHistory
+    loadHistory,
+    togglePinSession,    // 新增
+    renameSession        // 新增
   }
 })

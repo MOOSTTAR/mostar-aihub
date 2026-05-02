@@ -32,4 +32,14 @@ public interface ChatSessionService {
 	 * 批量删除会话
 	 */
 	void deleteSessions(List<String> memoryIds, Long userId);
+
+	/**
+	 * 更新会话置顶状态
+	 */
+	void updateSessionPinStatus(String memoryId, Boolean isPinned, Long userId);
+
+	/**
+	 * 更新会话标题
+	 */
+	void updateSessionTitleById(String memoryId, String title, Long userId);
 }

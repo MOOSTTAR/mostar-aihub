@@ -54,8 +54,28 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 			} else {
 				dto.setCreateTime(System.currentTimeMillis());
 			}
+			// 新增：读取 isPinned 字段，默认为 false
+			Object isPinnedObj = info.get("isPinned");
+			dto.setIsPinned(isPinnedObj != null && "1".equals(isPinnedObj.toString()));
+			// 新增：读取 pinnedAt 字段
+			Object pinnedAtObj = info.get("pinnedAt");
+			if (pinnedAtObj != null) {
+				dto.setPinnedAt(Long.parseLong(pinnedAtObj.toString()));
+			}
 			return dto;
-		}).sorted(Comparator.comparingLong(ChatSessionDTO::getCreateTime).reversed()).collect(Collectors.toList());
+		}).sorted((a, b) -> {
+			boolean aPinned = Boolean.TRUE.equals(a.getIsPinned());
+			boolean bPinned = Boolean.TRUE.equals(b.getIsPinned());
+
+			if (aPinned && !bPinned) return -1;  // a 置顶，b 未置顶，a 在前
+			if (!aPinned && bPinned) return 1;   // b 置顶，a 未置顶，b 在前
+			if (aPinned && bPinned) {
+				// 都置顶，按 pinnedAt 降序
+				return Long.compare(b.getPinnedAt() != null ? b.getPinnedAt() : 0L, a.getPinnedAt() != null ? a.getPinnedAt() : 0L);
+			}
+			// 都未置顶，按 createTime 降序
+			return Long.compare(b.getCreateTime(), a.getCreateTime());
+		}).collect(Collectors.toList());
 	}
 
 	@Override
@@ -107,6 +127,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 			info.put("title", title);
 			info.put("createTime", String.valueOf(System.currentTimeMillis()));
 			info.put("userId", String.valueOf(userId));
+			info.put("isPinned", "0");  // 新增：默认不置顶
 
 			stringRedisTemplate.opsForHash().putAll(infoKey, info);
 			log.info("用户 {} 创建新会话 {}，标题：{}", userId, memoryId, title);
@@ -152,6 +173,52 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		log.info("用户 {} 批量删除 {} 个会话完成", userId, memoryIds.size());
 	}
 
+	@Override
+	public void updateSessionPinStatus(String memoryId, Boolean isPinned, Long userId) {
+		if (userId == null || memoryId == null) {
+			return;
+		}
+
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
+
+		// 检查会话是否存在且属于当前用户
+		Object sessionUserId = stringRedisTemplate.opsForHash().get(infoKey, "userId");
+		if (sessionUserId == null || !userId.toString().equals(sessionUserId.toString())) {
+			throw new RuntimeException("会话不存在或无权操作");
+		}
+
+		if (Boolean.TRUE.equals(isPinned)) {
+			// 置顶：设置 isPinned=1 和 pinnedAt=当前时间戳
+			stringRedisTemplate.opsForHash().put(infoKey, "isPinned", "1");
+			stringRedisTemplate.opsForHash().put(infoKey, "pinnedAt", String.valueOf(System.currentTimeMillis()));
+			log.info("用户 {} 置顶会话 {}", userId, memoryId);
+		} else {
+			// 取消置顶：设置 isPinned=0 并删除 pinnedAt
+			stringRedisTemplate.opsForHash().put(infoKey, "isPinned", "0");
+			stringRedisTemplate.opsForHash().delete(infoKey, "pinnedAt");
+			log.info("用户 {} 取消置顶会话 {}", userId, memoryId);
+		}
+	}
+
+	@Override
+	public void updateSessionTitleById(String memoryId, String title, Long userId) {
+		if (userId == null || memoryId == null || title == null) {
+			return;
+		}
+
+		String infoKey = SESSION_INFO_PREFIX + memoryId;
+
+		// 检查会话是否存在且属于当前用户
+		Object sessionUserId = stringRedisTemplate.opsForHash().get(infoKey, "userId");
+		if (sessionUserId == null || !userId.toString().equals(sessionUserId.toString())) {
+			throw new RuntimeException("会话不存在或无权操作");
+		}
+
+		// 更新标题
+		stringRedisTemplate.opsForHash().put(infoKey, "title", truncateMessage(title, 20));
+		log.info("用户 {} 更新会话 {} 标题为：{}", userId, memoryId, truncateMessage(title, 20));
+	}
+
 	private Long getUserIdFromRequest(HttpServletRequest request) {
 		String authHeader = request.getHeader("Authorization");
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -162,7 +229,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 		try {
 			return jwtUtil.getUserIdFromToken(token);
 		} catch (Exception e) {
-			log.error("解析token失败", e);
+			log.error("解析 token 失败", e);
 			return null;
 		}
 	}

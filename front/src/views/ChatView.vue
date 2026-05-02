@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useChatSessionStore, type ChatMessage } from '../stores/chatSession'
+import { useChatSessionStore, type ChatMessage, type ChatSession } from '../stores/chatSession'
 import DOMPurify from 'dompurify'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -882,6 +882,74 @@ const insertCommand = (cmd: string) => {
   showCommands.value = false
 }
 
+// 三个点菜单相关状态
+const menuVisible = ref<string | null>(null)  // 当前显示菜单的会话 memoryId
+const editingSessionId = ref<string | null>(null)  // 正在编辑的会话 ID
+const editingTitle = ref("")  // 编辑中的标题
+
+// 打开/关闭三个点菜单
+const toggleMenu = (memoryId: string, event: Event) => {
+  event.stopPropagation()
+  menuVisible.value = menuVisible.value === memoryId ? null : memoryId
+}
+
+// 点击外部关闭菜单
+const closeMenu = () => {
+  menuVisible.value = null
+}
+
+// 处理置顶/取消置顶
+const handleTogglePin = async (session: ChatSession, event: Event) => {
+  event.stopPropagation()
+  const success = await sessionStore.togglePinSession(session.memoryId, !session.isPinned)
+  if (success) {
+    ElMessage.success(session.isPinned ? "已取消置顶" : "已置顶")
+  }
+  closeMenu()
+}
+
+// 处理重命名 - 进入编辑模式
+const handleRename = (session: ChatSession, event: Event) => {
+  event.stopPropagation()
+  editingSessionId.value = session.memoryId
+  editingTitle.value = session.title
+  closeMenu()
+}
+
+// 确认重命名
+const confirmRename = async () => {
+  if (!editingSessionId.value) return
+
+  const trimmedTitle = editingTitle.value.trim()
+  if (!trimmedTitle) {
+    ElMessage.warning("标题不能为空")
+    return
+  }
+
+  const success = await sessionStore.renameSession(editingSessionId.value, trimmedTitle)
+  if (success) {
+    ElMessage.success("重命名成功")
+  }
+  editingSessionId.value = null
+  editingTitle.value = ""
+}
+
+// 取消重命名
+const cancelRename = () => {
+  editingSessionId.value = null
+  editingTitle.value = ""
+}
+
+// 按 Enter 确认重命名
+const handleRenameKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Enter") {
+    e.preventDefault()
+    confirmRename()
+  } else if (e.key === "Escape") {
+    cancelRename()
+  }
+}
+
 // 点击外部关闭指令菜单
 const handleOutsideClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement
@@ -890,10 +958,16 @@ const handleOutsideClick = (e: MouseEvent) => {
   }
 }
 
+// 点击外部关闭菜单
+const handleDocumentClick = (e: MouseEvent) => {
+  closeMenu()
+  handleOutsideClick(e)
+}
+
 onMounted(async () => {
   initTheme()
   sessionStore.fetchSessions()
-  document.addEventListener('click', handleOutsideClick)
+  document.addEventListener('click', handleDocumentClick)
   bindCopyButtonEvent()
 })
 
@@ -926,7 +1000,7 @@ watch(sessionMemoryId, (newMemoryId, oldMemoryId) => {
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
+  document.removeEventListener('click', handleDocumentClick)
   chatContainer.value?.removeEventListener('click', handleCopyButtonClick)
 })
 </script>
@@ -1117,26 +1191,78 @@ onUnmounted(() => {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <div class="session-title">{{ session.title }}</div>
-            <button
-              class="delete-btn"
-              @click="handleDeleteSession(session.memoryId, $event)"
+            <!-- 会话标题 - 支持编辑模式 -->
+            <template v-if="editingSessionId === session.memoryId">
+              <input
+                v-model="editingTitle"
+                class="session-title-input"
+                @keydown="handleRenameKeydown"
+                @blur="confirmRename"
+                @click.stop
+                autofocus
+              />
+            </template>
+            <template v-else>
+              <div class="session-title">
+                <!-- 置顶图标 -->
+                <svg
+                  v-if="session.isPinned"
+                  class="pin-icon"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  style="margin-right: 4px; flex-shrink: 0;"
+                >
+                  <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                </svg>
+                {{ session.title }}
+              </div>
+            </template>
+            <!-- 三个点菜单按钮（非批量模式下显示） -->
+            <div
               v-if="!isBatchDeleteMode"
+              class="menu-btn"
+              @click="toggleMenu(session.memoryId, $event)"
             >
               <svg
-                width="14"
-                height="14"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+                fill="currentColor"
               >
-                <polyline points="3 6 5 6 21 6" />
-                <path
-                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                />
+                <circle cx="5" cy="12" r="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <circle cx="19" cy="12" r="2"/>
               </svg>
-            </button>
+            </div>
+            <!-- 三个点弹出菜单 -->
+            <div
+              v-if="menuVisible === session.memoryId"
+              class="session-menu"
+              @click.stop
+            >
+              <div class="menu-item" @click="handleTogglePin(session, $event)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 4v6l2 4v2H6v-2l2-4V4h8zm-2 6V6h-4v4l-2 4h8l-2-4z"/>
+                </svg>
+                <span>{{ session.isPinned ? "取消置顶" : "置顶" }}</span>
+              </div>
+              <div class="menu-item" @click="handleRename(session, $event)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <span>重命名</span>
+              </div>
+              <div class="menu-item delete" @click="handleDeleteSession(session.memoryId, $event)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                <span>删除</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1640,11 +1766,14 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
 }
 
-.delete-btn {
-  width: 24px;
-  height: 24px;
+/* 三个点菜单按钮 */
+.menu-btn {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1655,15 +1784,76 @@ onUnmounted(() => {
   cursor: pointer;
   opacity: 0;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.session-item:hover .delete-btn {
+.session-item:hover .menu-btn {
   opacity: 1;
 }
 
-.delete-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
+.menu-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+/* 弹出菜单 */
+.session-menu {
+  position: absolute;
+  right: 8px;
+  top: calc(100% + 4px);
+  min-width: 120px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 1000;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.menu-item:hover {
+  background: var(--bg-subtle);
+}
+
+.menu-item.delete {
   color: #ef4444;
+}
+
+.menu-item.delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 置顶图标 */
+.pin-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* 编辑中的标题输入框 */
+.session-title-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.session-title-input:focus {
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 /* Mobile Sidebar Toggle */
