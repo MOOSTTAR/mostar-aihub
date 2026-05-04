@@ -296,7 +296,12 @@ const detectLanguage = (code: string): string => {
 const renderContent = (content: string) => {
   if (!content) return ''
 
-  // 直接使用 AI 返回的 HTML，只用 DOMPurify 过滤 XSS
+  // 如果正在流式传输，直接返回原始内容，让浏览器解析 HTML
+  if (streamingMessageId !== null) {
+    return content
+  }
+
+  // 流式传输完成后，使用 DOMPurify 过滤并添加复制按钮
   const sanitized = DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [
       'p',
@@ -401,6 +406,8 @@ const sidebarCollapsed = ref(false)
 
 // 跟踪正在进行的 AI 响应所属的会话
 let streamingMemoryId: string | null = null
+// 跟踪正在流式传输的消息 ID
+let streamingMessageId: string | null = null
 
 // 批量删除相关
 const isBatchDeleteMode = ref(false)
@@ -633,6 +640,10 @@ const sendMessage = async () => {
 
     if (!reader) throw new Error('无法获取响应')
 
+    // 设置正在流式传输的消息 ID
+    streamingMessageId = aiMessageId
+
+    // 缓冲区用于存储未完成的 HTML 标签
     let fullContent = ''
 
     // 如果当前会话正在接收 AI 响应，更新已有消息；否则创建新消息
@@ -707,6 +718,8 @@ const sendMessage = async () => {
       // 实时更新消息内容（无论当前是否在该会话）
       const msg = messages.value.find((m) => m.id === aiMessageId)
       if (msg) {
+        // 关键：流式传输时，直接使用原始内容，让浏览器解析 HTML
+        // 即使标签不完整，浏览器也会尽可能渲染
         msg.content = fullContent
         // 只有在当前会话才滚动
         if (sessionMemoryId.value === currentMemoryId) {
@@ -725,6 +738,7 @@ const sendMessage = async () => {
 
     // SSE 完成，清除所有状态
     streamingMemoryId = null
+    streamingMessageId = null
     loading.value = false
     isTyping.value = false
     stopThinkingTimer()
@@ -732,14 +746,24 @@ const sendMessage = async () => {
     // 刷新会话列表（如果是新会话）
     await sessionStore.fetchSessions()
 
-    // 只有在当前会话才渲染 MathJax
+    // 只有在当前会话才渲染 MathJax 和代码块
     if (sessionMemoryId.value === currentMemoryId) {
+      // 强制更新消息内容，触发 renderContent 的完整渲染
+      const msg = messages.value.find((m) => m.id === aiMessageId)
+      if (msg) {
+        const currentContent = msg.content
+        msg.content = ''
+        await nextTick()
+        msg.content = currentContent
+        await nextTick()
+      }
       await renderMathJax()
     }
   } catch (error) {
     console.error('聊天出错:', error)
     // 出错时清除所有状态
     streamingMemoryId = null
+    streamingMessageId = null
     loading.value = false
     isTyping.value = false
     stopThinkingTimer()
