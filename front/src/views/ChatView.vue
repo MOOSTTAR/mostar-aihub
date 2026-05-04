@@ -131,7 +131,11 @@ const detectLanguage = (code: string): string => {
   if (
     /\b(public|private|protected)\s+class\b/.test(allCode) ||
     /\bimport\s+java\./.test(firstLines) ||
-    /\bpublic\s+static\s+void\s+main\b/.test(allCode)
+    /\bpublic\s+static\s+void\s+main\b/.test(allCode) ||
+    /\bMap\.Entry\b/.test(allCode) ||
+    /\bentrySet\(\)\b/.test(allCode) ||
+    /\bkeySet\(\)\b/.test(allCode) ||
+    /\bSystem\.out\.println\b/.test(allCode)
   ) {
     return 'Java'
   }
@@ -244,7 +248,12 @@ const detectLanguage = (code: string): string => {
   }
 
   // Rust
-  if (/^fn\s+\w+\(/m.test(allCode) || /\blet\s+mut\b/.test(allCode) || /->\s*\w+/.test(allCode)) {
+  if (
+    /^fn\s+\w+\s*\(/m.test(allCode) && /\blet\s+mut\b/.test(allCode) ||
+    /->\s*impl\s+\w+/.test(allCode) ||
+    /\bmatch\s+\w+\s*{/.test(allCode) ||
+    /\bOption<|Result</.test(allCode)
+  ) {
     return 'Rust'
   }
 

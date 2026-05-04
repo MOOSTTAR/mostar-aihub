@@ -50,7 +50,6 @@ const fetchUserInfo = async () => {
       }
     })
     const result = await response.json()
-    console.log('后端返回的用户信息:', result)
     if (result.success && result.data) {
       userInfo.value = {
         username: result.data.username || '',
@@ -61,7 +60,6 @@ const fetchUserInfo = async () => {
         gender: result.data.gender ?? 0,
         githubUrl: result.data.githubUrl ?? ''
       }
-      console.log('前端解析后的用户信息:', userInfo.value)
     }
   } catch (error) {
     console.error('获取用户信息失败:', error)

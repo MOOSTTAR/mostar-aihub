@@ -52,7 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			// token 已失效，返回 401
 			if (!response.isCommitted()) {
 				response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-				response.setContentType("application/json");
+				response.setContentType("application/json;charset=UTF-8");
 				response.getWriter().write("{\"code\":401,\"message\":\"Token已失效，请重新登录\"}");
 			}
 			return;

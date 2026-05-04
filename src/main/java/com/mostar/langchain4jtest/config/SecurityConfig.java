@@ -31,7 +31,7 @@ public class SecurityConfig {
 							// 自定义 401 处理，避免与流式响应冲突
 							if (!response.isCommitted()) {
 								response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-								response.setContentType("application/json");
+								response.setContentType("application/json;charset=UTF-8");
 								response.getWriter().write("{\"code\":401,\"message\":\"未登录或 Token 已过期\"}");
 							}
 						})
@@ -39,7 +39,7 @@ public class SecurityConfig {
 							// 自定义 403 处理
 							if (!response.isCommitted()) {
 								response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-								response.setContentType("application/json");
+								response.setContentType("application/json;charset=UTF-8");
 								response.getWriter().write("{\"code\":403,\"message\":\"拒绝访问\"}");
 							}
 						}))
