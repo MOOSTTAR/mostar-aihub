@@ -980,9 +980,10 @@ const closeMenu = () => {
 // 处理置顶/取消置顶
 const handleTogglePin = async (session: ChatSession, event: Event) => {
   event.stopPropagation()
-  const success = await sessionStore.togglePinSession(session.memoryId, !session.isPinned)
+  const willBePinned = !session.isPinned  // 保存目标状态
+  const success = await sessionStore.togglePinSession(session.memoryId, willBePinned)
   if (success) {
-    ElMessage.success(session.isPinned ? "已取消置顶" : "已置顶")
+    ElMessage.success(willBePinned ? "已置顶" : "已取消置顶")
   }
   closeMenu()
 }
