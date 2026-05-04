@@ -1,16 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-
-// 动画状态
-const showAnimation = ref(true)
-const showEnterButton = ref(false)
-const logoOpacity = ref(0)
-const logoY = ref(20)
-const textOpacity = ref(0)
-const textY = ref(15)
 
 // 进入大厅
 const enterLobby = () => {
@@ -21,53 +12,71 @@ const enterLobby = () => {
     router.push('/login')
   }
 }
-
-onMounted(() => {
-  // Logo 淡入上浮
-  setTimeout(() => {
-    logoOpacity.value = 1
-    logoY.value = 0
-  }, 100)
-
-  // 文字淡入上浮
-  setTimeout(() => {
-    textOpacity.value = 1
-    textY.value = 0
-  }, 400)
-
-  // 动画结束后显示进入按钮
-  setTimeout(() => {
-    showAnimation.value = false
-    showEnterButton.value = true
-  }, 1200)
-})
 </script>
 
 <template>
   <div class="intro-page">
-    <!-- 开场动画 -->
-    <div v-if="showAnimation" class="intro-animation">
-      <div class="logo-container" :style="{
-        opacity: logoOpacity,
-        transform: `translateY(${logoY}px)`
-      }">
+    <div class="content-wrapper">
+      <!-- Logo 和标题 -->
+      <div class="logo-section">
         <div class="logo-pulse"></div>
+        <h1 class="brand-name">莫星 AI</h1>
+        <p class="brand-tagline">探索智能的无限可能</p>
       </div>
-      <h1 class="brand-name" :style="{
-        opacity: textOpacity,
-        transform: `translateY(${textY}px)`
-      }">莫星 AI</h1>
-      <p class="brand-tagline" :style="{
-        opacity: textOpacity,
-        transform: `translateY(${textY}px)`
-      }">探索智能的无限可能</p>
-    </div>
 
-    <!-- 进入按钮 -->
-    <div v-if="showEnterButton" class="enter-section">
-      <button class="enter-btn" @click="enterLobby">
-        <span>进入</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- 3 秒循环动画：展示项目功能 -->
+      <div class="feature-animation">
+        <!-- 场景 1：AI 对话（0-1s, 1-2s 淡出） -->
+        <div class="feature-scene scene-chat">
+          <div class="chat-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <span class="feature-text">AI 对话</span>
+        </div>
+
+        <!-- 场景 2：上下文记忆（1-2s, 2-3s 淡出） -->
+        <div class="feature-scene scene-memory">
+          <div class="memory-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2v20M2 12h20" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          </div>
+          <span class="feature-text">上下文记忆</span>
+        </div>
+
+        <!-- 场景 3：个人中心（2-3s, 3-4s 淡出） -->
+        <div class="feature-scene scene-profile">
+          <div class="profile-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <span class="feature-text">个人中心</span>
+        </div>
+
+        <!-- 场景 4：主题切换（3-4s, 4-5s 淡出） -->
+        <div class="feature-scene scene-theme">
+          <div class="theme-icon-wrapper">
+            <svg class="sun-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="5" />
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+            <svg class="moon-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </div>
+          <span class="feature-text">主题切换</span>
+        </div>
+      </div>
+
+      <!-- 开始体验按钮 -->
+      <button class="start-btn" @click="enterLobby">
+        <span>开始体验</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M5 12h14M12 5l7 7-7 7" />
         </svg>
       </button>
@@ -80,86 +89,156 @@ onMounted(() => {
   min-height: 100vh;
   background: var(--bg-canvas, #FDFBF7);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: background 0.3s ease;
+  padding: 24px;
 }
 
-/* 开场动画区域 */
-.intro-animation {
+.content-wrapper {
   text-align: center;
-  transition: opacity 0.5s ease;
+  max-width: 400px;
 }
 
-/* Logo 容器 */
-.logo-container {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 32px;
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+/* Logo 区域 */
+.logo-section {
+  margin-bottom: 48px;
 }
 
-/* 光晕效果 */
 .logo-pulse {
-  width: 100%;
-  height: 100%;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
   border-radius: 50%;
   background: var(--accent, #4A7C9B);
-  opacity: 0.9;
-  animation: pulse 2s ease-in-out infinite;
+  animation: logoPulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes logoPulse {
   0%, 100% {
     transform: scale(1);
     opacity: 0.9;
   }
   50% {
-    transform: scale(1.05);
+    transform: scale(1.08);
     opacity: 1;
   }
 }
 
-/* 品牌名称 */
 .brand-name {
   font-size: 28px;
   font-weight: 600;
   color: var(--text-primary, #1A1A1A);
   margin-bottom: 8px;
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 标语 */
 .brand-tagline {
   font-size: 14px;
   color: var(--text-secondary, #6B6B6B);
   letter-spacing: 0.05em;
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 进入按钮区域 */
-.enter-section {
-  text-align: center;
-  animation: fadeIn 0.6s ease forwards;
+/* 功能动画区域 */
+.feature-animation {
+  position: relative;
+  height: 120px;
+  margin-bottom: 40px;
 }
 
-@keyframes fadeIn {
-  from {
+.feature-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+}
+
+.feature-scene .feature-icon,
+.feature-scene .theme-icon-wrapper {
+  color: var(--accent, #4A7C9B);
+}
+
+.feature-text {
+  font-size: 15px;
+  color: var(--text-primary, #1A1A1A);
+  font-weight: 500;
+}
+
+/* 场景动画 - 3 秒循环 */
+.scene-chat {
+  animation: sceneCycle 4s ease-in-out infinite;
+}
+
+.scene-memory {
+  animation: sceneCycle 4s ease-in-out infinite 1s;
+}
+
+.scene-profile {
+  animation: sceneCycle 4s ease-in-out infinite 2s;
+}
+
+.scene-theme {
+  animation: sceneCycle 4s ease-in-out infinite 3s;
+}
+
+@keyframes sceneCycle {
+  0% {
     opacity: 0;
     transform: translateY(10px);
   }
-  to {
+  15% {
     opacity: 1;
     transform: translateY(0);
   }
+  75% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90%, 100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
-.enter-btn {
+/* 主题切换图标特殊动画 */
+.theme-icon-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.sun-icon {
+  position: absolute;
+  opacity: 1;
+  animation: sunFade 4s ease-in-out infinite;
+}
+
+.moon-icon {
+  position: absolute;
+  opacity: 0;
+  animation: moonFade 4s ease-in-out infinite;
+}
+
+@keyframes sunFade {
+  0%, 100% { opacity: 0; }
+  25%, 75% { opacity: 1; }
+}
+
+@keyframes moonFade {
+  0%, 50% { opacity: 0; }
+  65%, 95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 开始体验按钮 */
+.start-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 32px;
+  padding: 14px 36px;
   background: var(--accent, #4A7C9B);
   border: none;
   border-radius: 10px;
@@ -170,16 +249,17 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.enter-btn:hover {
+.start-btn:hover {
   background: #3d6882;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(74, 124, 155, 0.3);
 }
 
-.enter-btn:active {
+.start-btn:active {
   transform: translateY(0);
 }
 
-/* 暗色模式支持 */
+/* 暗色模式 */
 [data-theme="dark"] .intro-page {
   --bg-canvas: #0F0F0F;
   --text-primary: #F5F5F5;
