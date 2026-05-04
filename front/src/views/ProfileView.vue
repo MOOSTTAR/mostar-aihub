@@ -34,7 +34,6 @@ const loading = ref(false)
 // 验证规则
 const rules = computed<FormRules>(() => ({
   phonenum: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
   ],
   email: [
@@ -66,7 +65,7 @@ const fetchUserInfo = async () => {
         username: result.data.username || '',
         phonenum: result.data.phonenum || '',
         email: result.data.email || '',
-        bio: result.data.bio || '来点酷酷的签名~',
+        bio: result.data.bio || '',
         birthday: result.data.birthday ? new Date(result.data.birthday) : null,
         gender: result.data.gender ?? 0,
         githubUrl: result.data.githubUrl || ''

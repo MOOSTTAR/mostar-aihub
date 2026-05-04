@@ -3,13 +3,13 @@
 
 USE langchain4j_test;
 
--- 添加邮箱字段
+-- 添加邮箱字段（可空）
 ALTER TABLE `user`
-ADD COLUMN `email` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '邮箱';
+ADD COLUMN `email` VARCHAR(100) DEFAULT NULL COMMENT '邮箱';
 
--- 添加个性签名字段
+-- 添加个性签名字段（可空）
 ALTER TABLE `user`
-ADD COLUMN `bio` VARCHAR(200) NOT NULL DEFAULT '来点酷酷的签名~' COMMENT '个性签名';
+ADD COLUMN `bio` VARCHAR(200) DEFAULT NULL COMMENT '个性签名';
 
 -- 添加生日字段
 ALTER TABLE `user`
