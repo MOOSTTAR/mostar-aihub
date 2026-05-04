@@ -166,7 +166,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 
       <!-- Footer -->
       <div class="login-footer">
-        <p>© 2025 莫星 AI · MOstArAI</p>
+        <p>© 2026 莫星 AI · MOstArAI</p>
       </div>
     </div>
   </div>
