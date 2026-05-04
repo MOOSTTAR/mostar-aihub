@@ -43,9 +43,9 @@ router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
   const isLoggedIn = !!token
 
-  // 根路径 - 已登录用户直接跳到大厅
-  if (to.path === '/' && isLoggedIn) {
-    next('/home')
+  // 根路径 - 不做跳转，让用户点击"开始体验"按钮
+  if (to.path === '/') {
+    next()
     return
   }
 

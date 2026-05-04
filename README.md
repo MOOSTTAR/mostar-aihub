@@ -201,11 +201,15 @@ langchain4j:
 
 ### 首页
 
-![首页](./assets/home-page.png)
+<video src="./assets/info.mp4" autoplay loop muted playsinline controls style="max-width: 100%; height: auto;" width="600"></video>
 
-### 对话主界面
+### 大厅
 
-![对话主界面](./assets/screenshot.png)
+![大厅](./assets/home.png)
+
+### 与 AI 对话
+
+![与 AI 对话](./assets/chat.png)
 
 ## 🔒 安全特性
 

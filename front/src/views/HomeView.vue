@@ -96,6 +96,13 @@ const handleLogout = async () => {
   <div class="lobby">
     <!-- Header -->
     <header class="lobby-header">
+      <div class="header-left">
+        <!-- 返回 intro 页面按钮 -->
+        <button class="icon-btn intro-btn" @click="router.push('/')" title="返回首页">
+          <span style="font-size: 18px; font-weight: 700;">E</span>
+        </button>
+      </div>
+
       <div class="header-actions">
         <!-- 主题切换按钮 -->
         <button class="icon-btn theme-toggle" @click="toggleTheme" :title="isDarkMode ? '切换亮色' : '切换暗色'">
@@ -244,6 +251,16 @@ const handleLogout = async () => {
   position: relative;
   text-align: center;
   padding: 60px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-left {
+  position: absolute;
+  top: 24px;
+  left: 24px;
 }
 
 .header-actions {
@@ -276,6 +293,31 @@ const handleLogout = async () => {
 }
 
 .icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* Intro 按钮 */
+.intro-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #E8E6E1);
+  border-radius: 10px;
+  background: var(--bg-elevated, #FFFFFF);
+  color: var(--text-secondary, #6B6B6B);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.intro-btn:hover {
+  border-color: var(--accent, #4A7C9B);
+  color: var(--accent, #4A7C9B);
+  transform: translateY(-1px);
+}
+
+.intro-btn:active {
   transform: scale(0.96);
 }
 
