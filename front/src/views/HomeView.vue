@@ -7,7 +7,14 @@ import { ElMessageBox } from 'element-plus'
 const router = useRouter()
 const authStore = useAuthStore()
 
+import defaultAvatar from '../assets/1728101288756.jpg'
+
 const username = computed(() => authStore.userInfo?.username || '用户')
+
+// 头像 URL
+const avatarUrl = computed(() => {
+  return defaultAvatar
+})
 
 // 用户下拉菜单
 const isUserMenuOpen = ref(false)
@@ -90,20 +97,21 @@ const handleLogout = async () => {
     <!-- Header -->
     <header class="lobby-header">
       <div class="header-actions">
+        <!-- 主题切换按钮 -->
+        <button class="icon-btn theme-toggle" @click="toggleTheme" :title="isDarkMode ? '切换亮色' : '切换暗色'">
+          <svg v-if="isDarkMode" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+
         <!-- 用户下拉菜单 -->
         <div class="user-menu" :class="{ open: isUserMenuOpen }" ref="userMenuRef">
           <div class="user-menu-trigger" @click="toggleUserMenu">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <img :src="avatarUrl" alt="头像" class="user-avatar" />
             <span class="username">{{ username }}</span>
             <svg
               class="dropdown-arrow"
@@ -137,16 +145,6 @@ const handleLogout = async () => {
             </div>
           </div>
         </div>
-
-        <button class="icon-btn theme-toggle" @click="toggleTheme" :title="isDarkMode ? '切换亮色' : '切换暗色'">
-          <svg v-if="isDarkMode" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        </button>
       </div>
 
       <div class="brand">
@@ -160,8 +158,8 @@ const handleLogout = async () => {
           title="访问 GitHub 项目"
         >
           <svg
-            width="18"
-            height="18"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="currentColor"
           >
@@ -299,8 +297,8 @@ const handleLogout = async () => {
 .user-menu-trigger {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
   height: 40px;
   background: var(--bg-elevated, #FFFFFF);
   border: 1px solid var(--border, #E8E6E1);
@@ -308,6 +306,14 @@ const handleLogout = async () => {
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-subtle, #f0f0f0);
 }
 
 .user-menu-trigger:hover {
@@ -318,10 +324,6 @@ const handleLogout = async () => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary, #1A1A1A);
-}
-
-.user-menu-trigger svg:first-child {
-  color: var(--text-secondary, #6B6B6B);
 }
 
 .dropdown-arrow {

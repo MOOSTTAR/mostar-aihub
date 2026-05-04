@@ -5,6 +5,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import defaultAvatar from '../assets/1728101288756.jpg'
+
+// 头像 URL
+const avatarUrl = computed(() => {
+  return defaultAvatar
+})
 
 // MathJax 类型声明
 declare global {
@@ -555,26 +561,6 @@ const scrollToBottom = async () => {
     })
   }
   await renderMathJax()
-}
-
-const handleLogout = async () => {
-  // AI 回复期间禁止退出
-  if (streamingMemoryId !== null) {
-    ElMessage.warning('AI 正在回复中，请稍后再退出登录')
-    return
-  }
-
-  const result = await ElMessageBox.confirm('是否确认退出登录？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    confirmButtonClass: 'custom-confirm-btn',
-    cancelButtonClass: 'custom-cancel-btn',
-  })
-
-  if (result) {
-    await authStore.logout()
-    router.push('/login')
-  }
 }
 
 const sendMessage = async () => {
@@ -1880,43 +1866,9 @@ onUnmounted(() => {
           </div>
 
           <div class="username-display">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <img :src="avatarUrl" alt="头像" class="user-avatar-small" />
             <span>{{ authStore.userInfo?.username || '用户' }}</span>
           </div>
-
-          <button
-            class="icon-btn logout-btn"
-            @click="handleLogout"
-            title="退出登录"
-            :disabled="streamingMemoryId !== null"
-            :style="{
-              opacity: streamingMemoryId !== null ? '0.5' : '1',
-              cursor: streamingMemoryId !== null ? 'not-allowed' : 'pointer',
-            }"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
         </div>
       </header>
 
@@ -2608,8 +2560,8 @@ body {
 .username-display {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 12px;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -2617,6 +2569,14 @@ body {
   color: var(--text-primary);
   font-weight: 500;
   height: 40px;
+}
+
+.user-avatar-small {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-subtle);
 }
 
 .username-display svg {

@@ -154,4 +154,102 @@ body .custom-cancel-btn:hover {
   background-color: #141414 !important;
   border-color: #2A2A2A !important;
 }
+
+/* Element Plus Select & DatePicker Dark Mode - 全局样式 */
+/* 覆盖 Element Plus 内部 CSS 变量 */
+[data-theme="dark"] {
+  --el-fill-color-blank: #1a1a1a !important;
+  --el-input-bg-color: #1a1a1a !important;
+  --el-input-text-color: #f5f5f5 !important;
+  --el-select-input-color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-select-dropdown {
+  background-color: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .el-select-dropdown__item {
+  color: #f5f5f5 !important;
+  background-color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-select-dropdown__item:hover {
+  background-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .el-select-dropdown__item.selected {
+  color: #6b9bc3 !important;
+}
+
+[data-theme="dark"] .el-date-picker__header {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-date-picker__header-label {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-date-picker-table td {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-date-picker-table td.selected {
+  background-color: #6b9bc3 !important;
+}
+
+[data-theme="dark"] .el-date-picker-table td.today {
+  color: #6b9bc3 !important;
+}
+
+[data-theme="dark"] .el-date-picker__time-header {
+  color: #f5f5f5 !important;
+  border-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .el-date-picker {
+  background-color: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+}
+
+[data-theme="dark"] .el-input__wrapper {
+  background-color: #1a1a1a !important;
+  box-shadow: 0 0 0 1px #2a2a2a inset !important;
+}
+
+[data-theme="dark"] .el-input__inner {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-textarea__inner {
+  background-color: #1a1a1a !important;
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] body .el-select .el-input__wrapper {
+  background-color: #1a1a1a !important;
+  box-shadow: 0 0 0 1px #2a2a2a inset !important;
+}
+
+[data-theme="dark"] body .el-select .el-input__inner {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] body .el-date-picker .el-input__wrapper {
+  background-color: #1a1a1a !important;
+  box-shadow: 0 0 0 1px #2a2a2a inset !important;
+}
+
+[data-theme="dark"] .el-select .el-input__inner {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .el-date-picker .el-input__wrapper {
+  background-color: #1a1a1a !important;
+  box-shadow: 0 0 0 1px #2a2a2a inset !important;
+}
+
+[data-theme="dark"] .popper__arrow {
+  background: #1a1a1a !important;
+}
 </style>
