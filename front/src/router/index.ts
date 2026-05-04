@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import IntroView from '../views/IntroView.vue'
 import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
@@ -6,6 +7,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'intro',
+      component: IntroView
+    },
+    {
+      path: '/home',
       name: 'home',
       component: HomeView,
       meta: { requiresAuth: true }
@@ -36,6 +42,12 @@ router.beforeEach((to, _from, next) => {
   // 直接从 localStorage 检查 token，避免 Pinia 状态同步问题
   const token = localStorage.getItem('token')
   const isLoggedIn = !!token
+
+  // 根路径 - 已登录用户直接跳到大厅
+  if (to.path === '/' && isLoggedIn) {
+    next('/home')
+    return
+  }
 
   // 需要登录的页面
   if (to.meta.requiresAuth && !isLoggedIn) {

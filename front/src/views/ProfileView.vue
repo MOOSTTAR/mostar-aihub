@@ -153,7 +153,7 @@ const saveAllEdits = async () => {
 
 // 返回大厅
 const goBack = () => {
-  router.push('/')
+  router.push('/home')
 }
 
 // 点击头像提示

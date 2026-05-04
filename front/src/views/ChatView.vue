@@ -412,7 +412,7 @@ const goBack = () => {
     ElMessage.warning('AI 正在回复中，请稍后再返回大厅')
     return
   }
-  router.push('/')
+  router.push('/home')
 }
 
 // 会话 Memory ID - 每次新建对话时生成，同一会话保持不变
