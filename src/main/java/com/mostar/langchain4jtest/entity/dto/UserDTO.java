@@ -1,45 +1,62 @@
 package com.mostar.langchain4jtest.entity.dto;
 
 import java.io.Serializable;
+import java.util.Date;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
-
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 用户登录表
+ * 用户信息数据传输对象（接收前端提交的修改数据）
  * </p>
  *
  * @author MOstAr
  * @since 2026-04-05
  */
 @Data
+@Builder
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("user")
 public class UserDTO implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * 用户名，最大10个字符（可包含汉字/字母/数字）
+	 * 手机号
 	 */
-	@TableField("username")
+	private String phonenum;
+
+	/**
+	 * 用户名
+	 */
 	private String username;
 
 	/**
-	 * 密码（8-20位数字字母组合，仅数字和字母，加盐哈希）
+	 * 邮箱
 	 */
-	@TableField("password")
-	private String password;
+	private String email;
 
 	/**
-	 * 1正常 0禁用
+	 * 个性签名
 	 */
-	@TableField("status")
-	private Integer status;
+	private String bio;
+
+	/**
+	 * 生日
+	 */
+	private Date birthday;
+
+	/**
+	 * 性别 0 未知 1 男 2 女
+	 */
+	private Integer gender;
+
+	/**
+	 * GitHub 空间链接
+	 */
+	private String githubUrl;
+
 }

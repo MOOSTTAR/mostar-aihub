@@ -23,8 +23,7 @@ const closeUserMenu = () => {
 
 const goToProfile = () => {
   closeUserMenu()
-  // TODO: 跳转到用户资料页
-  alert('修改资料功能即将上线')
+  router.push('/profile')
 }
 
 // 主题切换

@@ -18,6 +18,12 @@ interface LoginResponse {
 interface UserInfo {
   userId: number
   username: string
+  phonenum?: string
+  email?: string
+  bio?: string
+  birthday?: string
+  gender?: number
+  githubUrl?: string
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -134,6 +140,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // 更新用户信息
+  const updateUserInfo = (info: Partial<UserInfo>) => {
+    if (userInfo.value) {
+      userInfo.value = { ...userInfo.value, ...info }
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    }
+  }
+
   const initAuth = (): void => {
     // 从 localStorage 恢复认证状态
     const savedToken = localStorage.getItem('token')
@@ -174,6 +188,7 @@ export const useAuthStore = defineStore('auth', () => {
     initAuth,
     renewToken,
     clearRenewTimer,
-    resetRenewTimer
+    resetRenewTimer,
+    updateUserInfo
   }
 })

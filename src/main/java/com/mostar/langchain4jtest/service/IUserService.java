@@ -3,6 +3,7 @@ package com.mostar.langchain4jtest.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mostar.langchain4jtest.entity.dto.UserDTO;
 import com.mostar.langchain4jtest.entity.po.User;
+import com.mostar.langchain4jtest.entity.vo.UserVO;
 
 /**
  * <p>
@@ -20,5 +21,13 @@ public interface IUserService extends IService<User> {
 
 	boolean checkPassword(String rawPassword, String encodedPassword);
 
-	User login(UserDTO userDTO);
+	/**
+	 * 获取用户信息
+	 */
+	UserVO getUserInfo(Long userId);
+
+	/**
+	 * 更新用户信息
+	 */
+	boolean updateUserInfo(Long userId, UserDTO userDTO);
 }

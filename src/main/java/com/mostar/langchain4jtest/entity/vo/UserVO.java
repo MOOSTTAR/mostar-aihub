@@ -1,11 +1,7 @@
 package com.mostar.langchain4jtest.entity.vo;
 
 import java.io.Serializable;
-
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import java.util.Date;
 
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +10,7 @@ import lombok.experimental.Accessors;
 
 /**
  * <p>
- * 用户登录表
+ * 用户信息视图对象（返回给前端，不含密码）
  * </p>
  *
  * @author MOstAr
@@ -24,27 +20,58 @@ import lombok.experimental.Accessors;
 @Builder
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("user")
 public class UserVO implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * 主键ID（无符号整数，支持42.9亿用户量）
+	 * 主键 ID
 	 */
-	@TableId(value = "id", type = IdType.AUTO)
 	private Long id;
 
 	/**
-	 * 用户名，最大10个字符（可包含汉字/字母/数字）
+	 * 手机号
 	 */
-	@TableField("username")
+	private String phonenum;
+
+	/**
+	 * 用户名
+	 */
 	private String username;
 
 	/**
-	 * jwt令牌
+	 * 头像 URL
 	 */
-	@TableField("status")
-	private String token;
+	private String avatarUrl;
+
+	/**
+	 * 状态 1 正常 0 禁用
+	 */
+	private Integer status;
+
+	/**
+	 * 邮箱
+	 */
+	private String email;
+
+	/**
+	 * 个性签名
+	 */
+	private String bio;
+
+	/**
+	 * 生日
+	 */
+	private Date birthday;
+
+	/**
+	 * 性别 0 未知 1 男 2 女
+	 */
+	private Integer gender;
+
+	/**
+	 * GitHub 空间链接
+	 */
+	private String githubUrl;
 
 }

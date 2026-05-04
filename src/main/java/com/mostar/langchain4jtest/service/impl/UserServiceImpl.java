@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mostar.langchain4jtest.entity.dto.UserDTO;
 import com.mostar.langchain4jtest.entity.po.User;
+import com.mostar.langchain4jtest.entity.vo.UserVO;
 import com.mostar.langchain4jtest.mapper.UserMapper;
 import com.mostar.langchain4jtest.service.IUserService;
 
@@ -63,12 +64,73 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 		return passwordEncoder.matches(rawPassword, encodedPassword);
 	}
 
-	@Override
-	public User login(UserDTO userDTO) {
-		User user = getByUsername(userDTO.getUsername());
-		if (user != null && checkPassword(userDTO.getPassword(), user.getPassword())) {
-
+	/**
+	 * 用户登录（内部使用）
+	 */
+	public User loginByUsernameAndPassword(String username, String rawPassword) {
+		User user = getByUsername(username);
+		if (user != null && checkPassword(rawPassword, user.getPassword())) {
+			return user;
 		}
 		return null;
+	}
+
+	/**
+	 * 获取用户信息
+	 */
+	@Override
+	public UserVO getUserInfo(Long userId) {
+		User user = getById(userId);
+		if (user == null) {
+			return null;
+		}
+		return UserVO.builder()
+				.id(user.getId())
+				.phonenum(user.getPhonenum())
+				.username(user.getUsername())
+				.avatarUrl(user.getAvatarUrl())
+				.status(user.getStatus())
+				.email(user.getEmail())
+				.bio(user.getBio())
+				.birthday(user.getBirthday())
+				.gender(user.getGender())
+				.githubUrl(user.getGithubUrl())
+				.build();
+	}
+
+	/**
+	 * 更新用户信息
+	 */
+	@Override
+	public boolean updateUserInfo(Long userId, UserDTO userDTO) {
+		User user = getById(userId);
+		if (user == null) {
+			return false;
+		}
+
+		// 更新字段
+		if (userDTO.getUsername() != null) {
+			user.setUsername(userDTO.getUsername());
+		}
+		if (userDTO.getPhonenum() != null) {
+			user.setPhonenum(userDTO.getPhonenum());
+		}
+		if (userDTO.getEmail() != null) {
+			user.setEmail(userDTO.getEmail());
+		}
+		if (userDTO.getBio() != null) {
+			user.setBio(userDTO.getBio());
+		}
+		if (userDTO.getBirthday() != null) {
+			user.setBirthday(userDTO.getBirthday());
+		}
+		if (userDTO.getGender() != null) {
+			user.setGender(userDTO.getGender());
+		}
+		if (userDTO.getGithubUrl() != null) {
+			user.setGithubUrl(userDTO.getGithubUrl());
+		}
+
+		return updateById(user);
 	}
 }
