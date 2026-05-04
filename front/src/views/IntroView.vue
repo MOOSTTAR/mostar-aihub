@@ -139,7 +139,7 @@ const enterLobby = () => {
 
 .feature-carousel {
   display: flex;
-  gap: 100px;
+  gap: 40px;
   position: absolute;
   left: 0;
   animation: carouselScroll 8s linear infinite;
@@ -150,7 +150,7 @@ const enterLobby = () => {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-140px * 4));
+    transform: translateX(calc(-180px * 4));
   }
 }
 
@@ -158,7 +158,7 @@ const enterLobby = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 140px;
   flex-shrink: 0;
 }
