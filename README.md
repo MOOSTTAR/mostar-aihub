@@ -201,7 +201,7 @@ langchain4j:
 
 ### 首页
 
-![首页](./assets/info.gif)
+<video src="https://github.com/MOOSTTAR/mostar-aihub/releases/download/assets-v1/info.mp4" autoplay loop muted playsinline controls style="max-width: 100%; height: auto;" width="600"></video>
 
 ### 大厅
 
