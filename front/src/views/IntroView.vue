@@ -3,6 +3,14 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// 功能列表 - 4 个唯一功能
+const features = [
+  { name: 'AI 对话', icon: 'chat' },
+  { name: '上下文记忆', icon: 'memory' },
+  { name: '个人中心', icon: 'profile' },
+  { name: '主题切换', icon: 'theme' },
+]
+
 // 进入大厅
 const enterLobby = () => {
   const token = localStorage.getItem('token')
@@ -24,52 +32,33 @@ const enterLobby = () => {
         <p class="brand-tagline">探索智能的无限可能</p>
       </div>
 
-      <!-- 3 秒循环动画：展示项目功能 -->
-      <div class="feature-animation">
-        <!-- 场景 1：AI 对话（0-1s, 1-2s 淡出） -->
-        <div class="feature-scene scene-chat">
-          <div class="chat-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+      <!-- 左右滚动动画：展示项目功能 -->
+      <div class="carousel-wrapper">
+        <div class="feature-carousel">
+          <!-- 4 个功能 + 4 个重复功能 = 8 个，实现无缝循环 -->
+          <div v-for="(feature, idx) in [...features, ...features]" :key="idx" class="carousel-item">
+            <div class="icon-wrapper">
+              <!-- AI 对话 -->
+              <svg v-if="feature.icon === 'chat'" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <!-- 上下文记忆 -->
+              <svg v-else-if="feature.icon === 'memory'" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2v20M2 12h20" />
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+              <!-- 个人中心 -->
+              <svg v-else-if="feature.icon === 'profile'" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <!-- 主题切换 -->
+              <svg v-else-if="feature.icon === 'theme'" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </div>
+            <span class="feature-text">{{ feature.name }}</span>
           </div>
-          <span class="feature-text">AI 对话</span>
-        </div>
-
-        <!-- 场景 2：上下文记忆（1-2s, 2-3s 淡出） -->
-        <div class="feature-scene scene-memory">
-          <div class="memory-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 2v20M2 12h20" />
-              <circle cx="12" cy="12" r="10" />
-            </svg>
-          </div>
-          <span class="feature-text">上下文记忆</span>
-        </div>
-
-        <!-- 场景 3：个人中心（2-3s, 3-4s 淡出） -->
-        <div class="feature-scene scene-profile">
-          <div class="profile-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-          <span class="feature-text">个人中心</span>
-        </div>
-
-        <!-- 场景 4：主题切换（3-4s, 4-5s 淡出） -->
-        <div class="feature-scene scene-theme">
-          <div class="theme-icon-wrapper">
-            <svg class="sun-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="5" />
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-            </svg>
-            <svg class="moon-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          </div>
-          <span class="feature-text">主题切换</span>
         </div>
       </div>
 
@@ -137,100 +126,161 @@ const enterLobby = () => {
   letter-spacing: 0.05em;
 }
 
-/* 功能动画区域 */
-.feature-animation {
+/* 滚动动画区域 */
+.carousel-wrapper {
   position: relative;
+  width: 100%;
   height: 120px;
   margin-bottom: 40px;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
 }
 
-.feature-scene {
+.feature-carousel {
+  display: flex;
+  gap: 100px;
   position: absolute;
-  top: 0;
   left: 0;
-  right: 0;
+  animation: carouselScroll 8s linear infinite;
+}
+
+@keyframes carouselScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-140px * 4));
+  }
+}
+
+.carousel-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  opacity: 0;
+  width: 140px;
+  flex-shrink: 0;
 }
 
-.feature-scene .feature-icon,
-.feature-scene .theme-icon-wrapper {
+.icon-wrapper {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--accent, #4A7C9B);
+  /* 默认状态：小且透明 */
+  transform: scale(0.75);
+  opacity: 0.25;
 }
 
 .feature-text {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--text-primary, #1A1A1A);
   font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.3;
 }
 
-/* 场景动画 - 3 秒循环 */
-.scene-chat {
-  animation: sceneCycle 4s ease-in-out infinite;
+/* 使用 CSS 动画让经过中心的图标高亮 - 每个图标在 25%-37.5% 时间段高亮 */
+.carousel-item:nth-child(1),
+.carousel-item:nth-child(5) {
+  animation: itemHighlight 8s linear infinite;
+  animation-delay: 0s;
 }
 
-.scene-memory {
-  animation: sceneCycle 4s ease-in-out infinite 1s;
+.carousel-item:nth-child(2),
+.carousel-item:nth-child(6) {
+  animation: itemHighlight 8s linear infinite;
+  animation-delay: 2s;
 }
 
-.scene-profile {
-  animation: sceneCycle 4s ease-in-out infinite 2s;
+.carousel-item:nth-child(3),
+.carousel-item:nth-child(7) {
+  animation: itemHighlight 8s linear infinite;
+  animation-delay: 4s;
 }
 
-.scene-theme {
-  animation: sceneCycle 4s ease-in-out infinite 3s;
+.carousel-item:nth-child(4),
+.carousel-item:nth-child(8) {
+  animation: itemHighlight 8s linear infinite;
+  animation-delay: 6s;
 }
 
-@keyframes sceneCycle {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
+@keyframes itemHighlight {
+  0%, 12.5%, 50%, 100% {
+    transform: translateX(0) scale(0.75);
   }
-  15% {
+  25%, 37.5% {
+    transform: translateX(0) scale(1.15);
+  }
+}
+
+.carousel-item:nth-child(1) .icon-wrapper,
+.carousel-item:nth-child(5) .icon-wrapper {
+  animation: iconPulse 8s linear infinite;
+  animation-delay: 0s;
+}
+
+.carousel-item:nth-child(2),
+.carousel-item:nth-child(6) {
+  animation: iconPulse 8s linear infinite;
+  animation-delay: 2s;
+}
+
+.carousel-item:nth-child(3),
+.carousel-item:nth-child(7) {
+  animation: iconPulse 8s linear infinite;
+  animation-delay: 4s;
+}
+
+.carousel-item:nth-child(4),
+.carousel-item:nth-child(8) {
+  animation: iconPulse 8s linear infinite;
+  animation-delay: 6s;
+}
+
+@keyframes iconPulse {
+  0%, 12.5%, 50%, 100% {
+    opacity: 0.25;
+  }
+  25%, 37.5% {
     opacity: 1;
-    transform: translateY(0);
   }
-  75% {
+}
+
+.carousel-item:nth-child(1) .feature-text,
+.carousel-item:nth-child(5) .feature-text {
+  animation: textPulse 8s linear infinite;
+  animation-delay: 0s;
+}
+
+.carousel-item:nth-child(2) .feature-text,
+.carousel-item:nth-child(6) .feature-text {
+  animation: textPulse 8s linear infinite;
+  animation-delay: 2s;
+}
+
+.carousel-item:nth-child(3) .feature-text,
+.carousel-item:nth-child(7) .feature-text {
+  animation: textPulse 8s linear infinite;
+  animation-delay: 4s;
+}
+
+.carousel-item:nth-child(4) .feature-text,
+.carousel-item:nth-child(8) .feature-text {
+  animation: textPulse 8s linear infinite;
+  animation-delay: 6s;
+}
+
+@keyframes textPulse {
+  0%, 12.5%, 50%, 100% {
+    opacity: 0.3;
+  }
+  25%, 37.5% {
     opacity: 1;
-    transform: translateY(0);
   }
-  90%, 100% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-}
-
-/* 主题切换图标特殊动画 */
-.theme-icon-wrapper {
-  position: relative;
-  width: 48px;
-  height: 48px;
-}
-
-.sun-icon {
-  position: absolute;
-  opacity: 1;
-  animation: sunFade 4s ease-in-out infinite;
-}
-
-.moon-icon {
-  position: absolute;
-  opacity: 0;
-  animation: moonFade 4s ease-in-out infinite;
-}
-
-@keyframes sunFade {
-  0%, 100% { opacity: 0; }
-  25%, 75% { opacity: 1; }
-}
-
-@keyframes moonFade {
-  0%, 50% { opacity: 0; }
-  65%, 95% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 /* 开始体验按钮 */
